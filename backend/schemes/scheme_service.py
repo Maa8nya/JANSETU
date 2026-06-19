@@ -2,8 +2,8 @@ import mysql.connector
 
 db = mysql.connector.connect(
     host="localhost",
-    user="", #mysql username
-    password="", #mysql password
+    user="root", #mysql username
+    password="root", #mysql password
     database="jansetu_db"
 )
 

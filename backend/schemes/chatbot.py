@@ -9,7 +9,7 @@ from schemes.scheme_service import (
 )
 
 chatbot_bp = Blueprint(
-    "chatbot",
+    "schemes_chatbot",
     __name__
 )
 
@@ -77,6 +77,15 @@ def detect_category(message):
         "disease"
     ]):
         return "Health & Wellness"
+    
+    elif any(word in message for word in [
+        "housing",
+        "house",
+        "home",
+        "residence",
+        "shelter"
+    ]):
+        return "Housing & Shelter"
 
     return None
 
@@ -115,7 +124,12 @@ def is_explanation_request(message):
         "tell me about",
         "what is",
         "details of",
-        "know more"
+        "know more",
+        "know about",
+        "information about",
+        "information on",
+        "about scheme",
+        "scheme details"
     ]
 
     return any(
@@ -305,10 +319,13 @@ Instructions:
     # ------------------------
     # PROFILE COLLECTION
     # ------------------------
+    scheme = get_scheme_by_name(user_message)
 
-    category = detect_category(
-        user_message
-    )
+    if scheme:
+        # Explain scheme directly
+        category = detect_category(
+            user_message
+        )
 
     state = detect_state(
         user_message

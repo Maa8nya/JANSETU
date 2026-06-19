@@ -53,10 +53,17 @@ Explain why each recommendation is being made.
 
 Provide:
 
-1. Situation Summary
-2. Rights
-3. Recommended Actions
-4. Documents Required
+1. Rights
+2. Recommended Actions
+3. Documents Required
+
+Instructions:
+
+- Use plain text only
+- No markdown
+- No **
+- Use bullet points with -
+- Keep under 250 words
 
 Respond professionally.
 """

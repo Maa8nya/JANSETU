@@ -20,7 +20,7 @@ from legal.services.gemini_service import (
 )
 
 chatbot_bp = Blueprint(
-    "chatbot",
+    "legal_chatbot",
     __name__
 )
 

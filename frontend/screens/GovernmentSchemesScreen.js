@@ -77,7 +77,7 @@ const fetchSchemes = async () => {
     console.log("FETCH STARTED");
 
     const response = await fetch(
-      "http://:5000/schemes"
+      "http://10.35.21.29:5000/schemes"
     );
 
     console.log("STATUS:", response.status);
