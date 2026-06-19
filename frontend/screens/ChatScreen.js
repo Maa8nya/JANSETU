@@ -478,38 +478,62 @@ export default function ChatScreen({ navigation }) {
     // ADDED: Update chat list immediately when user sends message
     updateChatList(userMessage);
 
-    try {
-      const botResponse = await simulateBotResponse(userMessage);
+   try {
 
-      const botReply = {
-        id: (Date.now() + 1).toString(),
-        sender: "bot",
-        text: botResponse.text,
-        time: getCurrentTime(),
-        timestamp: new Date().toISOString(),
-        type: "text",
-        suggestions: botResponse.suggestions,
-      };
-
-      setMessages(prev => [...prev, botReply]);
-    } catch (error) {
-      console.error("Error getting bot response:", error);
-      
-      const errorReply = {
-        id: (Date.now() + 1).toString(),
-        sender: "bot",
-        text: "I'm having trouble processing your request. Please try again.",
-        time: getCurrentTime(),
-        timestamp: new Date().toISOString(),
-        type: "text",
-        isError: true,
-      };
-      
-      setMessages(prev => [...prev, errorReply]);
-    } finally {
-      setIsTyping(false);
-      setIsLoading(false);
+  const response = await fetch(
+    "http://:5000/chat", //your laptop's IP Address:5000
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: userMessage.text,
+      }),
     }
+  );
+
+  const data = await response.json();
+
+  const botReply = {
+    id: (Date.now() + 1).toString(),
+    sender: "bot",
+    text: data.response,
+    time: getCurrentTime(),
+    timestamp: new Date().toISOString(),
+    type: "text",
+  };
+
+  setMessages((prev) => [
+    ...prev,
+    botReply,
+  ]);
+
+} catch (error) {
+
+  console.log(error);
+
+  const botReply = {
+    id: (Date.now() + 1).toString(),
+    sender: "bot",
+    text: "Unable to connect to JANSETU server.",
+    time: getCurrentTime(),
+    timestamp: new Date().toISOString(),
+    type: "text",
+  };
+
+  setMessages((prev) => [
+    ...prev,
+    botReply,
+  ]);
+
+}
+finally {
+
+  setIsTyping(false);
+  setIsLoading(false);
+
+}
   };
 
   // ADDED: New function to update chat list

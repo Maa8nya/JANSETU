@@ -84,6 +84,41 @@ export default function BottomNav({
 
       </TouchableOpacity>
 
+      {/* SCHEMES */}
+
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() =>
+          navigation.navigate("Schemes")
+        }
+      >
+
+        <Ionicons
+          name={
+            active === "Schemes"
+              ? "briefcase"
+              : "briefcase-outline"
+          }
+          size={22}
+          color={
+            active === "Schemes"
+              ? "#5B3DF5"
+              : "#9CA3AF"
+          }
+        />
+
+        <Text
+          style={
+            active === "Schemes"
+              ? styles.activeNavText
+              : styles.navText
+          }
+        >
+          Schemes
+        </Text>
+
+      </TouchableOpacity>
+
       {/* RIGHTS */}
 
      <TouchableOpacity
@@ -152,41 +187,6 @@ export default function BottomNav({
   </Text>
 
 </TouchableOpacity>
-
-      {/* SCHEMES */}
-
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={() =>
-          navigation.navigate("Schemes")
-        }
-      >
-
-        <Ionicons
-          name={
-            active === "Schemes"
-              ? "briefcase"
-              : "briefcase-outline"
-          }
-          size={22}
-          color={
-            active === "Schemes"
-              ? "#5B3DF5"
-              : "#9CA3AF"
-          }
-        />
-
-        <Text
-          style={
-            active === "Schemes"
-              ? styles.activeNavText
-              : styles.navText
-          }
-        >
-          Schemes
-        </Text>
-
-      </TouchableOpacity>
 
     </View>
 

@@ -1,0 +1,1 @@
+export const API_URL = "http://:5000"; // your laptop's IP Address

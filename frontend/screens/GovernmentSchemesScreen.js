@@ -17,89 +17,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import BottomNav from "../components/BottomNav";
 import Loader from "../components/Loader";
 
-
-const schemesData = [
-  {
-    id: "1",
-    title: "PM Awas Yojana (Urban)",
-    subtitle: "Housing for all urban citizens",
-    tag: "Housing",
-    category: "Central",
-    icon: "business",
-    iconColor: "#2563EB",
-    bg: "#DBEAFE",
-  },
-  {
-    id: "2",
-    title: "Pradhan Mantri Scholarship",
-    subtitle: "Scheme for students",
-    tag: "Education",
-    category: "Central",
-    icon: "school",
-    iconColor: "#4F46E5",
-    bg: "#EDE9FE",
-  },
-  {
-    id: "3",
-    title: "Ayushman Bharat Yojana",
-    subtitle: "Health insurance scheme",
-    tag: "Health",
-    category: "Central",
-    icon: "leaf",
-    iconColor: "#16A34A",
-    bg: "#DCFCE7",
-  },
-  {
-    id: "4",
-    title: "PM Kisan Samman Nidhi",
-    subtitle: "Income support to farmers",
-    tag: "Agriculture",
-    category: "Central",
-    icon: "home",
-    iconColor: "#F59E0B",
-    bg: "#FEF3C7",
-  },
-  {
-    id: "5",
-    title: "Rythu Bandhu Scheme",
-    subtitle: "Investment support to farmers",
-    tag: "Agriculture",
-    category: "State",
-    icon: "leaf",
-    iconColor: "#16A34A",
-    bg: "#DCFCE7",
-  },
-  {
-    id: "6",
-    title: "KCR Kit Scheme",
-    subtitle: "Maternal and child health",
-    tag: "Health",
-    category: "State",
-    icon: "heart",
-    iconColor: "#DC2626",
-    bg: "#FEE2E2",
-  },
-  {
-    id: "7",
-    title: "SC Scholarship Scheme",
-    subtitle: "Education support for SC students",
-    tag: "Education",
-    category: "State",
-    icon: "school",
-    iconColor: "#4F46E5",
-    bg: "#EDE9FE",
-  },
-  {
-    id: "8",
-    title: "2BHK Housing Scheme",
-    subtitle: "Free housing for poor families",
-    tag: "Housing",
-    category: "State",
-    icon: "business",
-    iconColor: "#2563EB",
-    bg: "#DBEAFE",
-  },
-];
+const API_URL = "http://10.85.179.29:5000"; // Replace this with your laptop IP address
 
 const filters = [
   { label: "All", value: "All" },
@@ -110,10 +28,14 @@ const filters = [
 
 const categories = [
   "All Categories",
+  "Agriculture & Rural Development",
+  "Education & Learning",
+  "Health & Wellness",
+  "Women & Child",
+  "Skills & Employment",
+  "Culture & Arts",
+  "Social Welfare & Empowerment",
   "Housing",
-  "Education",
-  "Health",
-  "Agriculture",
 ];
 
 // Rolling placeholder texts
@@ -138,6 +60,7 @@ export default function SchemesScreen({ navigation }) {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [savedSchemeIds, setSavedSchemeIds] = useState([]);
+  const [schemesData, setSchemesData] = useState([]);
 
     const [isLoading, setIsLoading] = useState(false);
   
@@ -145,6 +68,139 @@ export default function SchemesScreen({ navigation }) {
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Fetch schemes data from the backend API
+  useEffect(() => {fetchSchemes();}, []);
+
+const fetchSchemes = async () => {
+  try {
+    console.log("FETCH STARTED");
+
+    const response = await fetch(
+      "http://:5000/schemes"
+    );
+
+    console.log("STATUS:", response.status);
+
+    const text = await response.text();
+
+    console.log("RAW RESPONSE:", text.substring(0, 200));
+
+    const data = JSON.parse(text);
+
+    console.log("TOTAL SCHEMES:", data.length);
+
+    const formattedData = data.map((scheme) => ({
+      id: String(scheme.id),
+      title: scheme.scheme_name,
+      subtitle: scheme.brief_description,
+      tag: scheme.category,
+      category: scheme.level,
+      state: scheme.state,
+
+      ...getSchemeIcon(scheme.category),
+
+      eligibility: scheme.eligibility_criteria,
+      benefits: scheme.benefits,
+      documents: scheme.documents_required,
+      application_process: scheme.application_process,
+      official_website: scheme.official_website,
+    }));
+
+    setSchemesData(formattedData);
+
+    console.log("LOADED:", formattedData.length);
+
+  } catch (error) {
+    console.log("FETCH ERROR:", error);
+  }
+};
+
+const getSchemeIcon = (category) => {
+  const cat = category?.toLowerCase() || "";
+
+  if (cat.includes("education"))
+    return {
+      icon: "school",
+      iconColor: "#2563EB",
+      bg: "#DBEAFE",
+    };
+
+  if (cat.includes("health"))
+    return {
+      icon: "medkit",
+      iconColor: "#DC2626",
+      bg: "#FEE2E2",
+    };
+
+  if (cat.includes("agriculture"))
+    return {
+      icon: "leaf",
+      iconColor: "#16A34A",
+      bg: "#DCFCE7",
+    };
+
+  if (cat.includes("housing"))
+    return {
+      icon: "home",
+      iconColor: "#EA580C",
+      bg: "#FED7AA",
+    };
+
+  if (cat.includes("social"))
+    return {
+      icon: "people",
+      iconColor: "#7C3AED",
+      bg: "#EDE9FE",
+    };
+
+  if (
+    cat.includes("women") ||
+    cat.includes("child")
+  )
+    return {
+      icon: "woman",
+      iconColor: "#DB2777",
+      bg: "#FCE7F3",
+    };
+
+  if (
+    cat.includes("employment") ||
+    cat.includes("skill") ||
+    cat.includes("livelihood")
+  )
+    return {
+      icon: "briefcase",
+      iconColor: "#0891B2",
+      bg: "#CFFAFE",
+    };
+
+  if (
+    cat.includes("culture") ||
+    cat.includes("art")
+  )
+    return {
+      icon: "color-palette",
+      iconColor: "#D97706",
+      bg: "#FEF3C7",
+    };
+
+  if (
+    cat.includes("finance") ||
+    cat.includes("financial")
+  )
+    return {
+      icon: "cash",
+      iconColor: "#059669",
+      bg: "#D1FAE5",
+    };
+
+  return {
+    icon: "document-text",
+    iconColor: "#4F46E5",
+    bg: "#EEF2FF",
+  };
+};
 
   // Load saved schemes when screen comes into focus
   useFocusEffect(
@@ -252,7 +308,17 @@ export default function SchemesScreen({ navigation }) {
     // Apply category filter
     if (activeFilter === "Category" && selectedCategory !== "All Categories") {
       filtered = filtered.filter(
-        (scheme) => scheme.tag === selectedCategory
+        (scheme) =>
+          selectedCategory
+            .toLowerCase()
+            .includes(
+              scheme.tag.toLowerCase()
+            ) ||
+          scheme.tag
+            .toLowerCase()
+            .includes(
+              selectedCategory.toLowerCase()
+            )
       );
     } else if (activeFilter === "Central") {
       filtered = filtered.filter(
@@ -305,7 +371,7 @@ export default function SchemesScreen({ navigation }) {
           >
             <Ionicons
               name={item.icon}
-              size={24}
+              size={28}
               color={item.iconColor}
             />
           </View>
@@ -315,7 +381,10 @@ export default function SchemesScreen({ navigation }) {
               {item.title}
             </Text>
 
-            <Text style={styles.schemeSubtitle}>
+            <Text
+              style={styles.schemeSubtitle}
+              numberOfLines={3}
+            >
               {item.subtitle}
             </Text>
 
@@ -362,12 +431,47 @@ export default function SchemesScreen({ navigation }) {
     );
   };
 
-  const handleSearch = () => {
-  setIsLoading(true);
+  // Search functionality
+const handleSearch = async () => {
+  try {
 
-  setTimeout(() => {
+    setIsLoading(true);
+
+    const response = await fetch(
+      `${API_URL}/search?query=${searchQuery}`
+    );
+
+    const data = await response.json();
+    console.log("DATA FROM API:", data);
+
+    const formattedData = data.map((scheme) => ({
+      id: scheme.id.toString(),
+      title: scheme.scheme_name,
+      subtitle: scheme.brief_description,
+      tag: scheme.category,
+      category: scheme.level,
+      state: scheme.state,
+
+      ...getSchemeIcon(scheme.category),
+
+      eligibility: scheme.eligibility_criteria,
+      benefits: scheme.benefits,
+      documents: scheme.documents_required,
+      application_process: scheme.application_process,
+      official_website: scheme.official_website,
+    }));
+
+    setSchemesData(formattedData);
+
+  } catch (error) {
+
+    console.log(error);
+
+  } finally {
+
     setIsLoading(false);
-  }, 1200);
+
+  }
 };
 
   const filteredSchemes = getFilteredSchemes();
@@ -420,14 +524,14 @@ export default function SchemesScreen({ navigation }) {
 
             <View style={styles.inputWrapper}>
               <TextInput
-  placeholder=""
-  placeholderTextColor="transparent"
-  style={styles.searchInput}
-  value={searchQuery}
-  onChangeText={setSearchQuery}
-  returnKeyType="search"
-  onSubmitEditing={handleSearch}
-/>
+              placeholder=""
+              placeholderTextColor="transparent"
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+            />
               
               {!searchQuery && (
                 <Animated.View
@@ -729,14 +833,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  iconBox: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
+ iconBox: {
+  width: 64,
+  height: 64,
+  borderRadius: 18,
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 14,
+},
 
   textContainer: {
     flex: 1,

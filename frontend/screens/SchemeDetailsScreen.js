@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Linking,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -202,62 +203,101 @@ export default function SchemeDetailsScreen({
             </Text>
 
             <Text style={styles.aboutText}>
-              {scheme.title} aims to provide
-              benefits and government support
-              to eligible citizens under the
-              {` ${scheme.tag.toLowerCase()}`} category.
+             {scheme.subtitle}
             </Text>
 
           </View>
 
           {/* ELIGIBILITY */}
 
-          <View style={styles.sectionCard}>
+            <View style={styles.sectionCard}>
 
-            <Text style={styles.sectionTitle}>
-              Eligibility
-            </Text>
+              <Text style={styles.sectionTitle}>
+                Eligibility
+              </Text>
 
-            {[
-              "Indian citizen",
-              "Valid ID proof required",
-              "Income criteria applicable",
-              "Must meet scheme guidelines",
-            ].map((item, index) => (
+              <Text style={styles.aboutText}>
+                {scheme.eligibility || "Eligibility information not available"}
+              </Text>
 
-              <View
-                key={index}
-                style={styles.eligibilityRow}
-              >
+            </View>
 
-                <Ionicons
-                  name="checkmark"
-                  size={20}
-                  color="#16A34A"
-                />
+            {/* BENEFITS */}
 
-                <Text style={styles.eligibilityText}>
-                  {item}
-                </Text>
+            <View style={styles.sectionCard}>
 
-              </View>
+              <Text style={styles.sectionTitle}>
+                Benefits
+              </Text>
 
-            ))}
+              <Text style={styles.aboutText}>
+                {scheme.benefits || "Benefits information not available"}
+              </Text>
 
-          </View>
+            </View>
 
-          {/* BUTTON */}
+            {/* DOCUMENTS REQUIRED */}
+
+            <View style={styles.sectionCard}>
+
+              <Text style={styles.sectionTitle}>
+                Documents Required
+              </Text>
+
+              <Text style={styles.aboutText}>
+                {scheme.documents || "Documents information not available"}
+              </Text>
+
+            </View>
+
+            {/* APPLICATION PROCESS */}
+
+            <View style={styles.sectionCard}>
+
+              <Text style={styles.sectionTitle}>
+                Application Process
+              </Text>
+
+              <Text style={styles.aboutText}>
+                {scheme.application_process || "Application process not available"}
+              </Text>
+
+            </View>
+
+           {/* OFFICIAL WEBSITE BUTTON */}
 
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.button}
+            onPress={() => {
+              if (scheme.official_website) {
+                Linking.openURL(scheme.official_website);
+              }
+            }}
           >
+           <Ionicons
+              name="open-outline"
+              size={20}
+              color="#FFFFFF"
+              style={{ marginRight: 8 }}
+            />
 
             <Text style={styles.buttonText}>
-              Check Eligibility
+              Visit Official Website
             </Text>
-
           </TouchableOpacity>
+
+            <View style={styles.websiteNote}>
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color="#6B7280"
+            />
+
+            <Text style={styles.websiteNoteText}>
+              You will be redirected to the official government website for application and complete details.
+            </Text>
+          </View>
 
         </ScrollView>
 
@@ -388,19 +428,40 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
 
-  button: {
-    height: 58,
-    marginHorizontal: 16,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#4F46E5",
-  },
+ button: {
+  height: 58,
+  marginHorizontal: 16,
+  borderRadius: 18,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#4F46E5",
+  flexDirection: "row",
+  shadowColor: "#4F46E5",
+  shadowOpacity: 0.25,
+  shadowRadius: 8,
+  elevation: 5,
+},
 
   buttonText: {
     color: "#FFFFFF",
     fontSize: 17,
     fontWeight: "700",
   },
+
+  websiteNote: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginHorizontal: 20,
+  marginTop: 14,
+  paddingHorizontal: 8,
+},
+
+websiteNoteText: {
+  flex: 1,
+  marginLeft: 8,
+  fontSize: 13,
+  color: "#6B7280",
+  lineHeight: 20,
+},
 
 });
