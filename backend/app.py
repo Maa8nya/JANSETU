@@ -2,20 +2,30 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import mysql.connector
 
-from schemes.chatbot import chatbot_bp
+# from schemes.chatbot import chatbot_bp
+
+from legal.routes.chatbot import chatbot_bp
+from legal.services.semantic_search import (
+    build_search_index
+)
 
 app = Flask(__name__)
 CORS(app)
 
-app.register_blueprint(chatbot_bp)
+# app.register_blueprint(chatbot_bp)
+app.register_blueprint(
+    chatbot_bp,
+    url_prefix="/api/legal"
+)
+
 
 # MySQL Connection
-db = mysql.connector.connect(
-    host="localhost",
-    user="", #mysql username
-    password="", #mysql password
-    database="jansetu_db"
-)
+# db = mysql.connector.connect(
+#     host="localhost",
+#     user="", #mysql username
+#     password="", #mysql password
+#     database="jansetu_db"
+# )
 
 cursor = db.cursor(dictionary=True)
 
@@ -136,6 +146,12 @@ def recommend():
     return jsonify(
         cursor.fetchall()
     )
+print("Building Legal Search Index...")
+
+build_search_index()
+
+print("Legal Search Index Ready.")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
