@@ -1,3 +1,5 @@
+import ast
+import json
 import os
 import time
 from dotenv import load_dotenv
@@ -17,6 +19,28 @@ genai.configure(
 model = genai.GenerativeModel(
     "gemini-2.5-flash"
 )
+
+
+def _parse_questions(text):
+    if not isinstance(text, str):
+        return text
+
+    text = text.strip()
+    if not text:
+        return []
+
+    try:
+        questions = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            questions = ast.literal_eval(text)
+        except Exception:
+            return [text]
+
+    if isinstance(questions, list):
+        return questions
+
+    return [str(questions)]
 
 
 def generate_questions(scenario):
@@ -55,7 +79,9 @@ Documents Needed:
         prompt
     )
 
-    return response.text
+    return _parse_questions(
+        response.text
+    )
 
 
 def main():

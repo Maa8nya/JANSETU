@@ -15,6 +15,10 @@ from legal.services.session_manager import (
     get_session
 )
 
+from legal.services.gemini_service import (
+    generate_legal_response
+)
+
 chatbot_bp = Blueprint(
     "chatbot",
     __name__
@@ -151,6 +155,18 @@ def answer():
             ]
         ):
 
+            final_response = generate_legal_response(
+
+                session[
+                    "scenario"
+                ],
+
+                session[
+                    "answers"
+                ]
+
+            )
+
             return jsonify({
 
                 "status":
@@ -159,7 +175,12 @@ def answer():
                 "scenario":
                 session[
                     "scenario"
+                ][
+                    "scenario"
                 ],
+
+                "response":
+                final_response,
 
                 "answers":
                 session[
