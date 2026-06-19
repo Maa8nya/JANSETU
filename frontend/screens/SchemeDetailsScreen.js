@@ -287,6 +287,30 @@ export default function SchemeDetailsScreen({
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.aiButton}
+          onPress={() =>
+            navigation.navigate(
+              "SchemeChatbot",
+              {
+                scheme: scheme
+              }
+            )
+          }
+        >
+          <Ionicons
+            name="chatbubble-ellipses"
+            size={20}
+            color="#FFFFFF"
+            style={{ marginRight: 8 }}
+          />
+
+          <Text style={styles.buttonText}>
+            Ask JANSETU AI
+          </Text>
+        </TouchableOpacity>
+
             <View style={styles.websiteNote}>
             <Ionicons
               name="information-circle-outline"
@@ -447,6 +471,27 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
   },
+
+  aiButton: {
+  height: 58,
+  marginHorizontal: 16,
+  marginTop: 12,
+
+  borderRadius: 18,
+
+  justifyContent: "center",
+  alignItems: "center",
+
+  backgroundColor: "#10B981",
+
+  flexDirection: "row",
+
+  shadowColor: "#10B981",
+  shadowOpacity: 0.25,
+  shadowRadius: 8,
+
+  elevation: 5,
+},
 
   websiteNote: {
   flexDirection: "row",

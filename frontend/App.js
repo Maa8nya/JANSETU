@@ -12,6 +12,7 @@ import SchemeDetailsScreen from "./screens/SchemeDetailsScreen";
 import SavedSchemes from "./screens/SavedSchemes";
 import PopularLawsScreen from "./screens/PopularLawsScreen";
 import RightsDetailScreen from './screens/RightsDetailScreen';
+import SchemeChatbotScreen from "./screens/SchemeChatbotScreen";
 
 import {
   View,
@@ -203,6 +204,11 @@ export default function App() {
             <Stack.Screen
               name="PopularLaws"
               component={PopularLawsScreen}
+            />
+
+            <Stack.Screen
+              name="SchemeChatbot"
+              component={SchemeChatbotScreen}
             />
 
           </Stack.Navigator>
