@@ -34,6 +34,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CHAT_HISTORY_KEY = "jansetu_chat_history";
 const ALL_CHATS_KEY = "jansetu_all_chats";
 const CURRENT_CHAT_KEY = "jansetu_current_chat";
+const LEGAL_BACKEND_HOST = "http://192.168.29.160:5000"; // Legal awareness backend IP
 
 export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -44,6 +45,9 @@ export default function ChatScreen({ navigation }) {
   const [messages, setMessages] = useState([]);
   const [allChats, setAllChats] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(Date.now().toString());
+  const [welcomeSelected, setWelcomeSelected] = useState(false);
+  const [chatMode, setChatMode] = useState(null); // 'legal' or 'schemes'
+  const [legalSessionId, setLegalSessionId] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [attachment, setAttachment] = useState(null);
@@ -132,6 +136,9 @@ export default function ChatScreen({ navigation }) {
     }
   }, [isTyping]);
 
+  // Helper: small sleep to simulate analysis/typing
+  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
   const initializeChat = async () => {
     try {
       const [savedMessages, savedAllChats, savedCurrentChatId] = await Promise.all([
@@ -146,8 +153,10 @@ export default function ChatScreen({ navigation }) {
       if (savedMessages) {
         const parsedMessages = JSON.parse(savedMessages);
         setMessages(parsedMessages.length > 0 ? parsedMessages : [getWelcomeMessage()]);
+        setWelcomeSelected(parsedMessages.length > 1);
       } else {
         setMessages([getWelcomeMessage()]);
+        setWelcomeSelected(false);
       }
     } catch (error) {
       console.error("Error initializing chat:", error);
@@ -160,6 +169,7 @@ export default function ChatScreen({ navigation }) {
     try {
       if (existingMessages && existingMessages.length > 0) {
         setMessages(existingMessages);
+        setWelcomeSelected(existingMessages.length > 1);
         setCurrentChatId(chatId);
       } else {
         // Load all messages and find the specific chat
@@ -169,9 +179,11 @@ export default function ChatScreen({ navigation }) {
           // Check if it's stored as an object with chat IDs
           if (allMessages[chatId]) {
             setMessages(allMessages[chatId]);
+            setWelcomeSelected(allMessages[chatId].length > 1);
           } else if (Array.isArray(allMessages)) {
             // If it's an array, just set it (backward compatibility)
             setMessages(allMessages);
+            setWelcomeSelected(allMessages.length > 1);
           }
         }
         setCurrentChatId(chatId);
@@ -310,6 +322,9 @@ export default function ChatScreen({ navigation }) {
     const newChatId = Date.now().toString();
     setCurrentChatId(newChatId);
     setMessages([getWelcomeMessage()]);
+    setWelcomeSelected(false);
+    setChatMode(null);
+    setLegalSessionId(null);
     setMessage("");
     setAttachment(null);
     setShowMenu(false);
@@ -342,6 +357,8 @@ export default function ChatScreen({ navigation }) {
               
               await AsyncStorage.setItem(ALL_CHATS_KEY, JSON.stringify(updatedChats));
               setMessages([getWelcomeMessage()]);
+              setChatMode(null);
+              setLegalSessionId(null);
               setShowMenu(false);
             } catch (error) {
               console.error("Error clearing history:", error);
@@ -479,35 +496,83 @@ export default function ChatScreen({ navigation }) {
     updateChatList(userMessage);
 
    try {
+    let response;
+    let data;
+    let botText = "";
 
-  const response = await fetch(
-    "http://:5000/chat", //your laptop's IP Address:5000
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: userMessage.text,
-      }),
+    if (chatMode === "legal") {
+      const legalUrl = `${LEGAL_BACKEND_HOST}/api/legal${legalSessionId ? "/answer" : "/start-chat"}`;
+      const legalPayload = legalSessionId
+        ? { session_id: legalSessionId, answer: userMessage.text }
+        : { query: userMessage.text };
+
+      response = await fetch(legalUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(legalPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Legal backend request failed");
+      }
+
+      data = await response.json();
+
+      if (!legalSessionId && data?.session_id) {
+        setLegalSessionId(data.session_id);
+      }
+
+      if (data.status === "question") {
+        botText = data.question || "Can you provide a bit more detail?";
+      } else if (data.status === "complete") {
+        botText = data.response || "I have provided the requested information.";
+      } else {
+        botText = data.response || data.message || "Unable to get a response from Legal Awareness.";
+      }
+    } else {
+      response = await fetch(
+        "http://:5000/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: userMessage.text,
+          }),
+        }
+      );
+
+      data = await response.json();
+      botText = data.response;
     }
-  );
 
-  const data = await response.json();
+    const botReply = {
+      id: (Date.now() + 1).toString(),
+      sender: "bot",
+      text: botText,
+      time: getCurrentTime(),
+      timestamp: new Date().toISOString(),
+      type: "text",
+    };
 
-  const botReply = {
-    id: (Date.now() + 1).toString(),
-    sender: "bot",
-    text: data.response,
-    time: getCurrentTime(),
-    timestamp: new Date().toISOString(),
-    type: "text",
-  };
-
-  setMessages((prev) => [
-    ...prev,
-    botReply,
-  ]);
+    // For Legal Awareness flow, simulate analysis/typing delay
+    if (chatMode === "legal") {
+      // keep typing indicator visible (already set earlier), add small randomized delay
+      const delay = 700 + Math.floor(Math.random() * 800); // 700-1500ms
+      await sleep(delay);
+      setMessages((prev) => [
+        ...prev,
+        botReply,
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        botReply,
+      ]);
+    }
 
 } catch (error) {
 
@@ -560,6 +625,26 @@ finally {
       saveAllChats(updatedChats);
       return updatedChats;
     });
+  };
+
+  const handleWelcomeOptionPress = (option) => {
+    setWelcomeSelected(true);
+    setChatMode(option === "legal" ? "legal" : "schemes");
+    setLegalSessionId(null);
+
+    const botReply = {
+      id: (Date.now() + 1).toString(),
+      sender: "bot",
+      text:
+        option === "schemes"
+          ? "Hello! I can suggest amazing schemes. Tell me what area you're interested in — housing, education, health, employment, or welfare support."
+          : "You're now connected to JANSETU Legal Awareness. Ask me anything about your legal rights, policies, or government procedures.",
+      time: getCurrentTime(),
+      timestamp: new Date().toISOString(),
+      type: "text",
+    };
+
+    setMessages((prev) => [...prev, botReply]);
   };
 
   const handleSuggestionPress = (question) => {
@@ -956,9 +1041,29 @@ finally {
 
         {renderAttachmentPreview()}
 
-        {/* Input */}
+        {/* Input or Welcome Actions */}
         <View style={[styles.inputArea, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          {isRecording ? (
+          {!welcomeSelected && messages.length <= 1 ? (
+            <View style={styles.welcomeActionsContainer}>
+              <Text style={styles.welcomeActionsTitle}>What can I help you with today?</Text>
+              <View style={styles.welcomeOptionsRowBottom}>
+                <TouchableOpacity
+                  style={styles.welcomeOptionButton}
+                  onPress={() => handleWelcomeOptionPress("legal")}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.welcomeOptionText}>Legal Awareness</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.welcomeOptionButton, styles.welcomeOptionButtonOutline]}
+                  onPress={() => handleWelcomeOptionPress("schemes")}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.welcomeOptionText, styles.welcomeOptionTextOutline]}>Schemes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : isRecording ? (
             <View style={styles.recordBar}>
               <Animated.View style={[styles.recordDot, { transform: [{ scale: pulseAnim }] }]} />
               <Text style={styles.recordTime}>{formatDuration(recordingDuration)}</Text>
@@ -1367,6 +1472,53 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     maxHeight: 100,
+  },
+  welcomeOptionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    marginVertical: 12,
+  },
+  welcomeOptionButton: {
+    flex: 1,
+    backgroundColor: "#4F46E5",
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  welcomeOptionButtonOutline: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#4F46E5",
+  },
+  welcomeOptionText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  welcomeOptionTextOutline: {
+    color: "#4F46E5",
+  },
+  welcomeActionsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  welcomeActionsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 10,
+  },
+  welcomeOptionsRowBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
   },
   attachBtn: {
     width: 34,
