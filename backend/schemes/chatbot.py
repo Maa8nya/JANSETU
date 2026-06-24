@@ -1,11 +1,15 @@
 from flask import Blueprint, request, jsonify
 
 from schemes.gemini_service import generate_response
+from schemes.eligibility_service import (
+    generate_questions
+)
 
 from schemes.scheme_service import (
     get_schemes_by_category,
     get_schemes_by_category_and_state,
-    get_scheme_by_name
+    get_scheme_by_name,
+    get_scheme_by_id
 )
 
 chatbot_bp = Blueprint(
@@ -136,24 +140,6 @@ def is_explanation_request(message):
         keyword in message
         for keyword in keywords
     )
-
-def is_explanation_request(message):
-
-    message = message.lower()
-
-    keywords = [
-        "explain",
-        "tell me about",
-        "what is",
-        "details of",
-        "know more"
-    ]
-
-    return any(
-        keyword in message
-        for keyword in keywords
-    )
-
 
 def handle_small_talk(message):
 
@@ -412,4 +398,63 @@ Instructions:
 
     return jsonify({
         "response": response
+    })
+
+
+@chatbot_bp.route(
+    "/eligibility-questions",
+    methods=["POST"]
+)
+def eligibility_questions():
+
+    data = request.json
+
+    scheme_id = data.get(
+        "scheme_id"
+    )
+
+    scheme = get_scheme_by_id(
+        scheme_id
+    )
+
+    if not scheme:
+
+        return jsonify({
+            "error": "Scheme not found"
+        }), 404
+
+    eligibility_text = " ".join([
+
+        scheme.get(
+            "eligibility_criteria",
+            ""
+        ),
+
+        scheme.get(
+            "target_beneficiaries",
+            ""
+        ),
+
+        scheme.get(
+            "category",
+            ""
+        ),
+
+        scheme.get(
+            "tags",
+            ""
+        )
+
+    ])
+
+    questions = generate_questions(
+        eligibility_text
+    )
+
+    return jsonify({
+        "scheme_name":
+            scheme["scheme_name"],
+
+        "questions":
+            questions
     })

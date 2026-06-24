@@ -34,7 +34,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CHAT_HISTORY_KEY = "jansetu_chat_history";
 const ALL_CHATS_KEY = "jansetu_all_chats";
 const CURRENT_CHAT_KEY = "jansetu_current_chat";
-const LEGAL_BACKEND_HOST = "http://192.168.29.160:5000"; // Legal awareness backend IP
+const LEGAL_BACKEND_HOST = "http://:5000"; // Legal awareness backend IP
 
 export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -533,7 +533,7 @@ export default function ChatScreen({ navigation }) {
       }
     } else {
       response = await fetch(
-        "http://192.168.29.160:5000/chat",
+        "http://:5000/chat",
         {
           method: "POST",
           headers: {

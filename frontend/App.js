@@ -13,6 +13,7 @@ import SavedSchemes from "./screens/SavedSchemes";
 import PopularLawsScreen from "./screens/PopularLawsScreen";
 import RightsDetailScreen from './screens/RightsDetailScreen';
 import SchemeChatbotScreen from "./screens/SchemeChatbotScreen";
+import EligibilityCheckerScreen from "./screens/EligibilityCheckerScreen";
 
 import {
   View,
@@ -194,6 +195,11 @@ export default function App() {
             <Stack.Screen
               name="SchemeDetails"
               component={SchemeDetailsScreen}
+            />
+
+            <Stack.Screen
+              name="EligibilityChecker"
+              component={EligibilityCheckerScreen}
             />
 
             <Stack.Screen

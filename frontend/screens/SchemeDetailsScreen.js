@@ -182,6 +182,30 @@ export default function SchemeDetailsScreen({
                 {scheme.subtitle}
               </Text>
 
+              <View style={styles.statsRow}>
+
+                <View style={styles.statCard}>
+                  <Text style={styles.statNumber}>
+                    State
+                  </Text>
+
+                  <Text style={styles.statLabel}>
+                    {scheme.state}
+                  </Text>
+                </View>
+
+                <View style={styles.statCard}>
+                  <Text style={styles.statNumber}>
+                    Category
+                  </Text>
+
+                  <Text style={styles.statLabel}>
+                    {scheme.category}
+                  </Text>
+                </View>
+
+              </View>
+
               <View style={styles.tagBox}>
 
                 <Text style={styles.tagText}>
@@ -193,6 +217,20 @@ export default function SchemeDetailsScreen({
             </View>
 
           </View>
+
+          <View style={styles.infoBanner}>
+
+          <Ionicons
+            name="shield-checkmark"
+            size={18}
+            color="#4F46E5"
+          />
+
+          <Text style={styles.infoBannerText}>
+            Verified Government Scheme
+          </Text>
+
+        </View>
 
           {/* ABOUT */}
 
@@ -212,9 +250,24 @@ export default function SchemeDetailsScreen({
 
             <View style={styles.sectionCard}>
 
-              <Text style={styles.sectionTitle}>
+              <View style={styles.sectionHeader}>
+
+              <Ionicons
+                name="checkmark-circle"
+                size={20}
+                color="#4F46E5"
+              />
+
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { marginLeft: 8, marginBottom: 0 }
+                ]}
+              >
                 Eligibility
               </Text>
+
+            </View>
 
               <Text style={styles.aboutText}>
                 {scheme.eligibility || "Eligibility information not available"}
@@ -226,9 +279,24 @@ export default function SchemeDetailsScreen({
 
             <View style={styles.sectionCard}>
 
-              <Text style={styles.sectionTitle}>
+              <View style={styles.sectionHeader}>
+
+              <Ionicons
+                name="gift"
+                size={20}
+                color="#4F46E5"
+              />
+
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { marginLeft: 8, marginBottom: 0 }
+                ]}
+              >
                 Benefits
               </Text>
+
+            </View>
 
               <Text style={styles.aboutText}>
                 {scheme.benefits || "Benefits information not available"}
@@ -240,9 +308,24 @@ export default function SchemeDetailsScreen({
 
             <View style={styles.sectionCard}>
 
-              <Text style={styles.sectionTitle}>
+              <View style={styles.sectionHeader}>
+
+              <Ionicons
+                name="document-text"
+                size={20}
+                color="#4F46E5"
+              />
+
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { marginLeft: 8, marginBottom: 0 }
+                ]}
+              >
                 Documents Required
               </Text>
+
+            </View>
 
               <Text style={styles.aboutText}>
                 {scheme.documents || "Documents information not available"}
@@ -254,9 +337,24 @@ export default function SchemeDetailsScreen({
 
             <View style={styles.sectionCard}>
 
-              <Text style={styles.sectionTitle}>
+              <View style={styles.sectionHeader}>
+
+              <Ionicons
+                name="clipboard"
+                size={20}
+                color="#4F46E5"
+              />
+
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { marginLeft: 8, marginBottom: 0 }
+                ]}
+              >
                 Application Process
               </Text>
+
+            </View>
 
               <Text style={styles.aboutText}>
                 {scheme.application_process || "Application process not available"}
@@ -284,6 +382,31 @@ export default function SchemeDetailsScreen({
 
             <Text style={styles.buttonText}>
               Visit Official Website
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.eligibilityButton}
+            onPress={() =>
+              navigation.navigate(
+                "EligibilityChecker",
+                {
+                  schemeId: scheme.id,
+                  schemeName: scheme.title
+                }
+              )
+            }
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color="#FFFFFF"
+              style={{ marginRight: 8 }}
+            />
+
+            <Text style={styles.buttonText}>
+              Check My Eligibility
             </Text>
           </TouchableOpacity>
 
@@ -367,14 +490,91 @@ const styles = StyleSheet.create({
   },
 
   topCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#EEF2FF",
     marginHorizontal: 16,
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 18,
     flexDirection: "row",
     borderWidth: 1,
     borderColor: "#EEF2F7",
     marginBottom: 18,
+  },
+
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF2FF",
+    marginHorizontal: 16,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 16,
+  },
+
+  infoBannerText: {
+    marginLeft: 8,
+    color: "#4F46E5",
+    fontWeight: "600",
+  },
+
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+
+  chip: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+
+  chipText: {
+    fontSize: 12,
+    color: "#374151",
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  statsRow: {
+    flexDirection: "row",
+    marginTop: 14,
+  },
+
+  statCard: {
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginRight: 10,
+  },
+
+  statNumber: {
+    fontWeight: "700",
+    color: "#4F46E5",
+  },
+
+  statLabel: {
+    color: "#6B7280",
+    marginTop: 4,
+  },
+
+  eligibilityButton: {
+    height: 58,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F59E0B",
+    flexDirection: "row",
+    elevation: 5,
   },
 
   iconBox: {
@@ -458,7 +658,7 @@ const styles = StyleSheet.create({
   borderRadius: 18,
   justifyContent: "center",
   alignItems: "center",
-  backgroundColor: "#4F46E5",
+  backgroundColor: "#0EA5E9",
   flexDirection: "row",
   shadowColor: "#4F46E5",
   shadowOpacity: 0.25,
@@ -482,7 +682,7 @@ const styles = StyleSheet.create({
   justifyContent: "center",
   alignItems: "center",
 
-  backgroundColor: "#10B981",
+  backgroundColor: "#4F46E5",
 
   flexDirection: "row",
 

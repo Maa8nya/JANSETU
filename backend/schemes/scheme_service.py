@@ -59,3 +59,16 @@ def get_scheme_by_name(
     ))
 
     return cursor.fetchone()
+
+def get_scheme_by_id(scheme_id):
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM schemes
+        WHERE id=%s
+        """,
+        (scheme_id,)
+    )
+
+    return cursor.fetchone()
