@@ -1,6 +1,9 @@
 from flask import Blueprint
 from flask import request
 from flask import jsonify
+from legal.services.law_service import (
+    get_laws_by_ids
+)
 
 from legal.services.semantic_search import (
     find_best_scenario
@@ -39,6 +42,47 @@ def start_chat():
             "query",
             ""
         )
+        query_lower = query.strip().lower()
+
+        GREETINGS = [
+            "hi",
+            "hello",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+            "hola"
+        ]
+
+        THANKS = [
+            "thanks",
+            "thank you",
+            "thx"
+        ]
+
+        GOODBYE = [
+            "bye",
+            "goodbye",
+            "see you"
+        ]
+
+        if query_lower in GREETINGS:
+            return jsonify({
+                "status": "question",
+                "question": "Hello! I can help with legal questions. What would you like to know?"
+            })
+
+        if query_lower in THANKS:
+            return jsonify({
+                "status": "question",
+                "question": "You're welcome! How can I help you today?"
+            })
+
+        if query_lower in GOODBYE:
+            return jsonify({
+                "status": "question",
+                "question": "Goodbye! Feel free to come back if you need legal help."
+            })
 
         result = find_best_scenario(
             query
@@ -154,6 +198,13 @@ def answer():
                 "questions"
             ]
         ):
+            laws = get_laws_by_ids(
+    session["scenario"].get(
+        "law_ids",
+        []
+    )
+)
+
 
             final_response = generate_legal_response(
 

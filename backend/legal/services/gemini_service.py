@@ -17,57 +17,97 @@ model = genai.GenerativeModel(
 
 def generate_legal_response(
     scenario,
+    laws,
     answers
 ):
+        # Format the laws nicely
+    law_context = ""
 
+    for law in laws:
+
+        law_context += f"""
+Law:
+{law.get("name")}
+
+Summary:
+{law.get("summary")}
+
+Sections:
+{law.get("sections")}
+
+-----------------------
+"""
     prompt = f"""
 You are JanSetu Legal Assistant.
 
-Use ONLY the information provided.
+You are NOT a legal search engine.
 
-Scenario:
-{scenario.get('scenario')}
+Use ONLY the legal information provided below.
 
-Description:
-{scenario.get('description')}
+If the information is insufficient,
+say so instead of making assumptions.
 
-Rights:
-{scenario.get('rights')}
+====================================================
 
-Actions:
-{scenario.get('actions')}
+USER QUERY DETAILS
 
-Documents Needed:
-{scenario.get('documents_needed')}
-
-User Answers:
 {answers}
 
-Write in a friendly conversational tone.
+====================================================
 
-Do not use headings unless necessary.
+SCENARIO
 
-Reference the user's answers naturally.
+Title:
+{scenario.get("scenario")}
 
-Explain why each recommendation is being made.
+Description:
+{scenario.get("description")}
 
-Provide:
+Rights:
+{scenario.get("rights")}
 
-1. Rights
-2. Recommended Actions
-3. Documents Required
+Immediate Actions:
+{scenario.get("immediate_actions")}
 
-Instructions:
+Recommended Actions:
+{scenario.get("actions")}
 
-- Use plain text only
-- No markdown
-- No **
-- Use bullet points with -
-- Keep under 250 words
+Required Documents:
+{scenario.get("documents_needed")}
 
-Respond professionally.
+Red Flags:
+{scenario.get("red_flags")}
+
+Possible Outcomes:
+{scenario.get("possible_outcomes")}
+
+References:
+{scenario.get("references")}
+
+Severity:
+{scenario.get("severity")}
+
+Urgency:
+{scenario.get("urgency")}
+
+====================================================
+
+RELEVANT LAWS
+
+{laws}
+
+====================================================
+
+Instructions
+
+- Use ONLY the retrieved information.
+- Do NOT invent legal facts.
+- Explain the legal situation naturally.
+- Mention relevant laws where appropriate.
+- Personalize the advice using the user's answers.
+- Keep the response below 300 words.
+- Plain text only.
 """
-
     response = model.generate_content(
         prompt
     )
