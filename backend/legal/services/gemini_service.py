@@ -22,24 +22,20 @@ def generate_legal_response(
 ):
 
     # ----------------------------
-    # Format user answers
+    # Format User Answers
     # ----------------------------
 
     answers_text = ""
 
     for question, answer in answers.items():
 
-        answers_text += f"""
-Question:
-{question}
-
-Answer:
-{answer}
-
-"""
+        answers_text += (
+            f"- {question}\n"
+            f"  Answer: {answer}\n"
+        )
 
     # ----------------------------
-    # Format retrieved laws
+    # Format Laws
     # ----------------------------
 
     law_context = ""
@@ -47,69 +43,53 @@ Answer:
     for law in laws:
 
         law_context += f"""
-Law ID:
-{law.get("law_id")}
-
 Law:
 {law.get("name")}
 
-Category:
-{law.get("category")}
-
 Summary:
 {law.get("summary")}
-
-Applicable When:
-{", ".join(law.get("applicable_when", []))}
-
-Important Provisions:
 """
 
-        for section in (law.get("important_provisions") or []):
+        provisions = law.get(
+            "important_provisions",
+            []
+        )
 
-            law_context += f"""
-Reference:
-{section.get("reference")}
+        if provisions:
 
-Title:
-{section.get("title")}
+            law_context += "Important Provisions:\n"
 
-Description:
-{section.get("description")}
+            for section in provisions:
 
-"""
+                law_context += (
+                    f"- {section.get('reference')}: "
+                    f"{section.get('title')}\n"
+                )
 
-        law_context += f"""
-Keywords:
-{", ".join(law.get("keywords", []))}
-
-----------------------------------------
-
-"""
+        law_context += "\n"
 
     # ----------------------------
-    # Build Prompt
+    # Prompt
     # ----------------------------
 
     prompt = f"""
-You are JanSetu Legal Assistant.
+You are JanSetu, an Indian legal assistance chatbot.
 
-You are NOT a legal search engine.
+Use ONLY the retrieved scenario and legal information below.
 
-Use ONLY the retrieved legal information.
+Do NOT invent legal facts.
 
-If the retrieved information is insufficient,
-say so instead of making assumptions.
+If the available information is insufficient, clearly say so.
 
-====================================================
+====================================
 
 USER DETAILS
 
 {answers_text}
 
-====================================================
+====================================
 
-SCENARIO
+MATCHED SCENARIO
 
 Title:
 {scenario.get("scenario")}
@@ -118,47 +98,45 @@ Description:
 {scenario.get("description")}
 
 Rights:
-{scenario.get("rights")}
-
-Immediate Actions:
-{scenario.get("immediate_actions")}
+{", ".join(scenario.get("rights", []))}
 
 Recommended Actions:
-{scenario.get("actions")}
+{", ".join(scenario.get("actions", []))}
 
-Required Documents:
-{scenario.get("documents_needed")}
+====================================
 
-Red Flags:
-{scenario.get("red_flags")}
-
-Possible Outcomes:
-{scenario.get("possible_outcomes")}
-
-Severity:
-{scenario.get("severity")}
-
-Urgency:
-{scenario.get("urgency")}
-
-====================================================
-
-RETRIEVED LEGAL KNOWLEDGE
+RELEVANT LAWS
 
 {law_context}
 
-====================================================
+====================================
 
 Instructions
 
-- Base your response ONLY on the retrieved scenario and laws.
+Write a concise and helpful response.
+
+Use the following structure:
+
+Legal Position:
+- Mention only 1-2 relevant law names naturally.
+- Do NOT explain the laws in detail.
+(Mention ONLY the names of the 1-2 most relevant retrieved laws. Do NOT explain the laws or sections unless absolutely necessary.)
+
+What You Should Do:
+(Provide 3-5 practical next steps.)
+
+Important Rules
+
+- Use simple and easy-to-understand English.
+- Base the response ONLY on the retrieved scenario and retrieved laws.
 - Do NOT invent legal facts.
-- Mention the relevant law names naturally.
-- Mention important legal provisions when useful.
-- Explain why each recommendation is made.
 - Personalize the response using the user's answers.
-- If the retrieved information is insufficient, clearly state that.
-- Keep the response under 300 words.
+- Mention only 1-2 relevant law names naturally.
+- Do NOT explain the laws in detail.
+- Do NOT list every retrieved law.
+- Mention legal sections only if they are essential.
+- Avoid repeating information.
+- Maximum 150 words.
 - Plain text only.
 """
 
@@ -168,25 +146,22 @@ Instructions
 
     try:
 
-        print("========== GEMINI DEBUG ==========")
+        print("\n========== GEMINI ==========")
         print("Scenario :", scenario.get("scenario"))
-        print("No. of Laws :", len(laws))
+        print("Retrieved Laws :", len(laws))
         print("Prompt Length :", len(prompt))
-        print("==================================")
+        print("============================\n")
 
         response = model.generate_content(
             prompt
         )
 
-        print("Gemini Success")
-
         return response.text
 
     except Exception as e:
 
-        print("========== GEMINI ERROR ==========")
+        print("\n========== GEMINI ERROR ==========")
         print(type(e))
         print(e)
-        print("==================================")
-
+        print("==================================\n")
         raise
