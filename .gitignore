@@ -3,3 +3,5 @@ venv/
 
 .env
 backend/.env
+backend/__pychcache__
+*.pyc

@@ -15,7 +15,8 @@ from legal.services.question_generator import (
 
 from legal.services.session_manager import (
     create_session,
-    get_session
+    get_session,
+    save_session,
 )
 
 from legal.services.gemini_service import (
@@ -87,6 +88,15 @@ def start_chat():
         result = find_best_scenario(
             query
         )
+        if result["scenario"] is None:
+
+            return jsonify({
+
+            "status": "error",
+
+            "message": "Sorry, I couldn't find a relevant legal category for your issue. Could you describe it differently or provide more details?"
+
+            })
 
         scenario = result[
             "scenario"
@@ -150,6 +160,8 @@ def answer():
         session_id = data.get(
             "session_id"
         )
+        print("\n========== ANSWER REQUEST ==========")
+        print("Received Session ID:", session_id)
 
         answer_text = data.get(
             "answer"
@@ -158,6 +170,7 @@ def answer():
         session = get_session(
             session_id
         )
+        print("Session Found:", session is not None)
 
         if not session:
 
@@ -191,6 +204,8 @@ def answer():
             "question_index"
         ] += 1
 
+        save_session(session)
+
         if session[
             "question_index"
         ] >= len(
@@ -199,23 +214,20 @@ def answer():
             ]
         ):
             laws = get_laws_by_ids(
-    session["scenario"].get(
-        "law_ids",
-        []
-    )
-)
-
+                session["scenario"].get(
+                    "law_ids",
+                    []
+                )
+            )
 
             final_response = generate_legal_response(
-
                 session[
                     "scenario"
                 ],
-
+                laws,
                 session[
                     "answers"
                 ]
-
             )
 
             return jsonify({

@@ -20,7 +20,24 @@ def generate_legal_response(
     laws,
     answers
 ):
-        # Format the laws nicely
+
+    # ----------------------------
+    # Format User Answers
+    # ----------------------------
+
+    answers_text = ""
+
+    for question, answer in answers.items():
+
+        answers_text += (
+            f"- {question}\n"
+            f"  Answer: {answer}\n"
+        )
+
+    # ----------------------------
+    # Format Laws
+    # ----------------------------
+
     law_context = ""
 
     for law in laws:
@@ -31,31 +48,48 @@ Law:
 
 Summary:
 {law.get("summary")}
-
-Sections:
-{law.get("sections")}
-
------------------------
 """
+
+        provisions = law.get(
+            "important_provisions",
+            []
+        )
+
+        if provisions:
+
+            law_context += "Important Provisions:\n"
+
+            for section in provisions:
+
+                law_context += (
+                    f"- {section.get('reference')}: "
+                    f"{section.get('title')}\n"
+                )
+
+        law_context += "\n"
+
+    # ----------------------------
+    # Prompt
+    # ----------------------------
+
     prompt = f"""
-You are JanSetu Legal Assistant.
+You are JanSetu, an Indian legal assistance chatbot.
 
-You are NOT a legal search engine.
+Use ONLY the retrieved scenario and legal information below.
 
-Use ONLY the legal information provided below.
+Do NOT invent legal facts.
 
-If the information is insufficient,
-say so instead of making assumptions.
+If the available information is insufficient, clearly say so.
 
-====================================================
+====================================
 
-USER QUERY DETAILS
+USER DETAILS
 
-{answers}
+{answers_text}
 
-====================================================
+====================================
 
-SCENARIO
+MATCHED SCENARIO
 
 Title:
 {scenario.get("scenario")}
@@ -64,52 +98,70 @@ Description:
 {scenario.get("description")}
 
 Rights:
-{scenario.get("rights")}
-
-Immediate Actions:
-{scenario.get("immediate_actions")}
+{", ".join(scenario.get("rights", []))}
 
 Recommended Actions:
-{scenario.get("actions")}
+{", ".join(scenario.get("actions", []))}
 
-Required Documents:
-{scenario.get("documents_needed")}
-
-Red Flags:
-{scenario.get("red_flags")}
-
-Possible Outcomes:
-{scenario.get("possible_outcomes")}
-
-References:
-{scenario.get("references")}
-
-Severity:
-{scenario.get("severity")}
-
-Urgency:
-{scenario.get("urgency")}
-
-====================================================
+====================================
 
 RELEVANT LAWS
 
-{laws}
+{law_context}
 
-====================================================
+====================================
 
 Instructions
 
-- Use ONLY the retrieved information.
+Write a concise and helpful response.
+
+Use the following structure:
+
+Legal Position:
+- Mention only 1-2 relevant law names naturally.
+- Do NOT explain the laws in detail.
+(Mention ONLY the names of the 1-2 most relevant retrieved laws. Do NOT explain the laws or sections unless absolutely necessary.)
+
+What You Should Do:
+(Provide 3-5 practical next steps.)
+
+Important Rules
+
+- Use simple and easy-to-understand English.
+- Base the response ONLY on the retrieved scenario and retrieved laws.
 - Do NOT invent legal facts.
-- Explain the legal situation naturally.
-- Mention relevant laws where appropriate.
-- Personalize the advice using the user's answers.
-- Keep the response below 300 words.
+- Personalize the response using the user's answers.
+- Mention only 1-2 relevant law names naturally.
+- Do NOT explain the laws in detail.
+- Do NOT list every retrieved law.
+- Mention legal sections only if they are essential.
+- Avoid repeating information.
+- Maximum 150 words.
 - Plain text only.
 """
-    response = model.generate_content(
-        prompt
-    )
 
-    return response.text
+    # ----------------------------
+    # Gemini
+    # ----------------------------
+
+    try:
+
+        print("\n========== GEMINI ==========")
+        print("Scenario :", scenario.get("scenario"))
+        print("Retrieved Laws :", len(laws))
+        print("Prompt Length :", len(prompt))
+        print("============================\n")
+
+        response = model.generate_content(
+            prompt
+        )
+
+        return response.text
+
+    except Exception as e:
+
+        print("\n========== GEMINI ERROR ==========")
+        print(type(e))
+        print(e)
+        print("==================================\n")
+        raise

@@ -64,9 +64,7 @@ def build_search_index():
 
 def find_best_scenario(query):
 
-    query_embedding = model.encode(
-        query
-    )
+    query_embedding = model.encode(query)
 
     best_score = -1
     best_match = None
@@ -79,9 +77,11 @@ def find_best_scenario(query):
         )[0][0]
 
         if score > best_score:
-
             best_score = score
             best_match = item["scenario"]
+
+    print("Best Score:", best_score)
+    print("Matched Scenario:", best_match["scenario"])
 
     return {
         "score": float(best_score),
