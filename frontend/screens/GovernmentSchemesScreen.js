@@ -21,7 +21,6 @@ import Loader from "../components/Loader";
 
 const API_URL = "http://192.168.0.128:5000"; // Replace this with your laptop IP address
 const { width } = Dimensions.get("window");
-const API_URL = "http://:5000";
 
 // JANSETU Color Theme
 const COLORS = {
