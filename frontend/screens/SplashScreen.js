@@ -84,7 +84,7 @@ export default function SplashScreen({ navigation }) {
               ]}
               maxFontSizeMultiplier={1}
             >
-              Legal & Policy Awareness
+              Legal & Scheme Awareness
             </Text>
 
             <View style={styles.descriptionContainer}>
@@ -111,7 +111,7 @@ export default function SplashScreen({ navigation }) {
                 ]}
                 maxFontSizeMultiplier={1}
               >
-                simplified legal and policy
+                simplified legal and schemes
               </Text>
 
               <Text

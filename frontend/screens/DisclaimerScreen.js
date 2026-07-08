@@ -78,7 +78,7 @@ export default function DisclaimerScreen({ navigation, route }) {
             JANSETU provides simplified
           </Text>
           <Text style={styles.mainText}>
-            legal and policy awareness
+            legal and scheme awareness
           </Text>
           <Text style={styles.mainText}>
             information only.

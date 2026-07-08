@@ -42,9 +42,13 @@ print("Legal Search Index Ready.")
 db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="root",
+    password="Helloworld123",
     database="jansetu_db"
 )
+cursor = db.cursor(dictionary=True)
+
+if db.is_connected():
+    print("MySQL Connected Successfully!")
 
 cursor = db.cursor(dictionary=True)
 

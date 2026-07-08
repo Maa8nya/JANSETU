@@ -26,6 +26,8 @@ import Loader from "../components/Loader";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const NOTIFICATIONS_KEY = "jansetu_notifications";
+
 export default function HomeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   
@@ -61,29 +63,7 @@ const [searchQuery, setSearchQuery] = useState("");
   const [expandedFAQ, setExpandedFAQ] = React.useState(null);
 
   // Notifications state
-  const [notifications, setNotifications] = React.useState([
-    {
-      id: 1,
-      title: "New Law Amendment",
-      message: "IPC Section 304B has been updated with new provisions.",
-      time: "2 hours ago",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Scheme Update",
-      message: "New housing scheme launched by the government.",
-      time: "5 hours ago",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Legal Tip",
-      message: "Know your rights during a traffic stop.",
-      time: "1 day ago",
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = React.useState([]);
 
   // Open sidebar with animation
   const openSidebar = () => {
@@ -123,14 +103,31 @@ const [searchQuery, setSearchQuery] = useState("");
 
   const hasUnreadNotifications = notifications.some(notif => !notif.read);
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(notif => ({ ...notif, read: true })));
+  const markAllAsRead = async () => {
+    const updated = notifications.map(notif => ({
+      ...notif,
+      read: true,
+    }));
+
+    setNotifications(updated);
+    await AsyncStorage.setItem(
+      NOTIFICATIONS_KEY,
+      JSON.stringify(updated)
+    );
   };
 
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(notif => 
-      notif.id === id ? { ...notif, read: true } : notif
-    ));
+  const markAsRead = async (id) => {
+    const updated = notifications.map(notif =>
+      notif.id === id
+        ? { ...notif, read: true }
+        : notif
+    );
+
+    setNotifications(updated);
+    await AsyncStorage.setItem(
+      NOTIFICATIONS_KEY,
+      JSON.stringify(updated)
+    );
   };
 
   const clearAllNotifications = () => {
@@ -142,7 +139,10 @@ const [searchQuery, setSearchQuery] = useState("");
         { 
           text: "Clear All", 
           style: "destructive",
-          onPress: () => setNotifications([])
+          onPress: async () => {
+            setNotifications([]);
+            await AsyncStorage.removeItem(NOTIFICATIONS_KEY);
+          }
         }
       ]
     );
@@ -154,6 +154,57 @@ const [searchQuery, setSearchQuery] = useState("");
       setSelectedLanguage(route.params.selectedLanguage);
     }
   }, [route.params?.selectedLanguage]);
+
+  // Load notifications
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const saveNotification = async (title, message) => {
+    const newNotification = {
+      id: Date.now(),
+      title,
+      message,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      read: false,
+    };
+
+    const updated = [newNotification, ...notifications];
+
+    setNotifications(updated);
+
+    await AsyncStorage.setItem(
+      NOTIFICATIONS_KEY,
+      JSON.stringify(updated)
+    );
+  };
+
+  const loadNotifications = async () => {
+
+    try {
+
+      const stored = await AsyncStorage.getItem(NOTIFICATIONS_KEY);
+
+      if (stored) {
+
+        setNotifications(JSON.parse(stored));
+
+      } else {
+
+        setNotifications([]);
+
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+    }
+
+  };
 
   const getInitial = (name) => {
     return name ? name.charAt(0).toUpperCase() : "J";
@@ -191,13 +242,21 @@ const [searchQuery, setSearchQuery] = useState("");
     );
   };
 
-  const handleSearch = () => {
-  setIsLoading(true);
+  const handleSearch = async () => {
 
-  setTimeout(() => {
-    setIsLoading(false);
-  }, 1200);
-};
+    if (!searchQuery.trim()) return;
+
+    await saveNotification(
+      "Search Performed",
+      `You searched for "${searchQuery}".`
+    );
+
+    setIsLoading(true);
+
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+  };
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -987,7 +1046,7 @@ const [searchQuery, setSearchQuery] = useState("");
             How can I help you today?
           </Text>
           <Text style={styles.subText}>
-            Ask any legal or policy related
+            Ask any legal or scheme related
           </Text>
           <Text style={styles.subText}>
             question in simple words.
@@ -1016,7 +1075,15 @@ const [searchQuery, setSearchQuery] = useState("");
         {/* CHATBOT CARD */}
         <TouchableOpacity
           activeOpacity={0.92}
-          onPress={() => navigation.navigate("Chat")}
+          onPress={async () => {
+
+            await saveNotification(
+              "JANSETU Assistant",
+              "You started a new conversation with JANSETU."
+            );
+
+            navigation.navigate("Chat");
+          }}
         >
           <LinearGradient
             colors={["#4F46E5", "#6366F1"]}
@@ -1030,7 +1097,7 @@ const [searchQuery, setSearchQuery] = useState("");
   Get answers to your legal and
 </Text>
 <Text style={styles.chatSubtitle}>
-  policy questions.
+  scheme questions.
 </Text>
 
               <TouchableOpacity style={styles.arrowButton}>
@@ -1065,7 +1132,14 @@ const [searchQuery, setSearchQuery] = useState("");
         <View style={styles.exploreGrid}>
           <TouchableOpacity 
             style={styles.exploreCard}
-            onPress={() => navigation.navigate("PopularLaws")}
+            onPress={async () => {
+              await saveNotification(
+                "Popular Laws",
+                "You viewed Popular Laws."
+              );
+
+              navigation.navigate("PopularLaws");
+            }}
           >
             <Image
               source={require("../assets/balance.png")}
@@ -1077,7 +1151,15 @@ const [searchQuery, setSearchQuery] = useState("");
 
           <TouchableOpacity
             style={styles.exploreCard}
-            onPress={() => navigation.navigate("Schemes")}
+            onPress={async () => {
+
+              await saveNotification(
+                "Government Schemes",
+                "You explored Government Schemes."
+              );
+
+              navigation.navigate("Schemes");
+            }}
           >
             <Image
               source={require("../assets/law.png")}
@@ -1091,7 +1173,14 @@ const [searchQuery, setSearchQuery] = useState("");
 
           <TouchableOpacity
             style={styles.exploreCard}
-            onPress={() => navigation.navigate("Rights")}
+            onPress={async () => {
+              await saveNotification(
+                "Know Your Rights",
+                "You explored basic rights."
+              );
+
+              navigation.navigate("Rights");
+            }}
           >
             <Image
               source={require("../assets/sheild.png")}

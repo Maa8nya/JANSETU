@@ -1,14 +1,16 @@
 from flask import Blueprint, request, jsonify
 
 from schemes.gemini_service import generate_response
+
 from schemes.eligibility_service import (
-    generate_questions
+    generate_questions,
+    evaluate_eligibility
 )
 
 from schemes.scheme_service import (
+    get_scheme_by_name,
     get_schemes_by_category,
     get_schemes_by_category_and_state,
-    get_scheme_by_name,
     get_scheme_by_id
 )
 
@@ -17,175 +19,290 @@ chatbot_bp = Blueprint(
     __name__
 )
 
-# Temporary conversation memory
+# ------------------------------------
+# Conversation Memory
+# ------------------------------------
+
 user_profile = {
     "category": None,
-    "state": None
+    "state": None,
+    "scheme": None
 }
 
+# ------------------------------------
+# Category Keywords
+# ------------------------------------
+
+CATEGORY_KEYWORDS = {
+
+    "Education": [
+        "student","students","study","studying",
+        "education","college","school","scholarship",
+        "engineering","degree","btech","be","hostel",
+        "fees","education loan","student loan",
+        "higher education","university","exam"
+    ],
+
+    "Agriculture & Rural Development":[
+        "farmer","farm","farming","agriculture",
+        "crop","kisan","tractor","irrigation",
+        "soil","seed","fertilizer","livestock",
+        "dairy"
+    ],
+
+    "Housing & Shelter":[
+        "house","housing","home","flat",
+        "apartment","construction","shelter",
+        "own house","build house","home loan",
+        "property","rent"
+    ],
+
+    "Skills & Employment":[
+        "job","employment","work","career",
+        "training","skill","internship",
+        "placement","salary","income",
+        "business","startup","earning",
+        "unemployed"
+    ],
+
+    "Health & Wellness":[
+        "health","hospital","medical",
+        "doctor","medicine","treatment",
+        "operation","surgery","clinic",
+        "healthcare","disease"
+    ],
+
+    "Women & Child Development":[
+        "woman","women","girl","female",
+        "mother","pregnant","daughter",
+        "child","children"
+    ],
+
+    "Social Welfare & Empowerment":[
+        "widow","disabled","divyang",
+        "pwd","worker","labour",
+        "labor","pension","senior citizen"
+    ],
+
+    "Culture & Arts":[
+        "artist","art","music",
+        "dance","craft","culture"
+    ]
+}
+
+# ------------------------------------
+# States
+# ------------------------------------
+
+STATES = [
+
+"Andhra Pradesh",
+"Arunachal Pradesh",
+"Assam",
+"Bihar",
+"Chhattisgarh",
+"Central",
+"Delhi",
+"Goa",
+"Gujarat",
+"Haryana",
+"Himachal Pradesh",
+"Jharkhand",
+"Karnataka",
+"Kerala",
+"Madhya Pradesh",
+"Maharashtra",
+"Manipur",
+"Meghalaya",
+"Mizoram",
+"Nagaland",
+"Odisha",
+"Punjab",
+"Rajasthan",
+"Sikkim",
+"Tamil Nadu",
+"Telangana",
+"Tripura",
+"Uttar Pradesh",
+"Uttarakhand",
+"West Bengal"
+
+]
+
+# ------------------------------------
+# Intent Keywords
+# ------------------------------------
+
+BENEFIT_WORDS = [
+    "benefit",
+    "benefits",
+    "advantages",
+    "advantage"
+]
+
+ELIGIBILITY_WORDS = [
+    "eligibility",
+    "eligible",
+    "who can apply",
+    "can i apply"
+]
+
+DOCUMENT_WORDS = [
+    "documents",
+    "document",
+    "papers",
+    "required documents"
+]
+
+APPLICATION_WORDS = [
+    "apply",
+    "application",
+    "application process",
+    "how to apply"
+]
+
+EXPLAIN_WORDS = [
+    "explain",
+    "what is",
+    "tell me about",
+    "details",
+    "information",
+    "describe",
+    "brief"
+]
+
+SCHEME_WORDS = [
+
+    "scheme",
+    "schemes",
+    "yojana",
+    "government scheme",
+    "government help",
+    "recommend",
+    "suggest",
+    "subsidy",
+    "loan",
+    "financial assistance",
+    "support"
+
+]
+
+# ------------------------------------
+# Helper Functions
+# ------------------------------------
 
 def detect_category(message):
 
     message = message.lower()
 
-    if any(word in message for word in [
-        "farmer",
-        "agriculture",
-        "crop",
-        "farming"
-    ]):
-        return "Agriculture & Rural Development"
+    for category, words in CATEGORY_KEYWORDS.items():
 
-    elif any(word in message for word in [
-        "student",
-        "scholarship",
-        "education",
-        "college",
-        "school"
-    ]):
-        return "Education"
+        if any(word in message for word in words):
 
-    elif any(word in message for word in [
-        "woman",
-        "women",
-        "girl",
-        "mother"
-    ]):
-        return "Women & Child Development"
-
-    elif any(word in message for word in [
-        "worker",
-        "labour",
-        "labor"
-    ]):
-        return "Social Welfare & Empowerment"
-
-    elif any(word in message for word in [
-        "job",
-        "employment",
-        "skill",
-        "training"
-    ]):
-        return "Skills & Employment"
-
-    elif any(word in message for word in [
-        "artist",
-        "art",
-        "culture"
-    ]):
-        return "Culture & Arts"
-
-    elif any(word in message for word in [
-        "health",
-        "medical",
-        "disease"
-    ]):
-        return "Health & Wellness"
-    
-    elif any(word in message for word in [
-        "housing",
-        "house",
-        "home",
-        "residence",
-        "shelter"
-    ]):
-        return "Housing & Shelter"
+            return category
 
     return None
 
 
 def detect_state(message):
 
-    states = [
-        "Karnataka",
-        "Maharashtra",
-        "Tamil Nadu",
-        "Kerala",
-        "Rajasthan",
-        "Delhi",
-        "Gujarat",
-        "Haryana",
-        "Punjab",
-        "Uttar Pradesh"
-    ]
-
     message = message.lower()
 
-    for state in states:
+    for state in STATES:
 
         if state.lower() in message:
+
             return state
 
     return None
 
 
-def is_explanation_request(message):
+def detect_scheme(message):
+
+    scheme = get_scheme_by_name(message)
+
+    if scheme:
+        return scheme
+
+    cleaned = message.lower()
+
+    remove = [
+
+        "benefits of",
+        "benefit of",
+        "eligibility of",
+        "documents for",
+        "documents required for",
+        "how to apply for",
+        "apply for",
+        "tell me about",
+        "what is",
+        "describe",
+        "details of",
+        "explain"
+
+    ]
+
+    for word in remove:
+
+        cleaned = cleaned.replace(word,"")
+
+    cleaned = cleaned.strip()
+
+    return get_scheme_by_name(cleaned)
+
+
+def detect_intent(message):
 
     message = message.lower()
 
-    keywords = [
-        "explain",
-        "tell me about",
-        "what is",
-        "details of",
-        "know more",
-        "know about",
-        "information about",
-        "information on",
-        "about scheme",
-        "scheme details"
-    ]
+    if any(x in message for x in BENEFIT_WORDS):
+        return "benefits"
 
-    return any(
-        keyword in message
-        for keyword in keywords
-    )
+    if any(x in message for x in ELIGIBILITY_WORDS):
+        return "eligibility"
+
+    if any(x in message for x in DOCUMENT_WORDS):
+        return "documents"
+
+    if any(x in message for x in APPLICATION_WORDS):
+        return "application"
+
+    return "general"
+
 
 def handle_small_talk(message):
 
     message = message.lower().strip()
 
-    if message in [
-        "thank you",
-        "thanks",
-        "thankyou",
-        "thanks a lot"
-    ]:
-        return (
-            "You're welcome 😊.\n\n"
-            "I can help you find government schemes, "
-            "check eligibility, or explain any scheme."
-        )
+    if message in ["hi","hello","hey"]:
 
-    if message in [
-        "hi",
-        "hello",
-        "hey"
-    ]:
+         # Start a fresh conversation
+        user_profile["category"] = None
+        user_profile["state"] = None
+        user_profile["scheme"] = None
+
         return (
             "Hello 👋\n\n"
-            "I am JANSETU AI.\n"
-            "Tell me about yourself and I will suggest suitable government schemes."
+            "I'm JANSETU AI.\n"
+            "Let's start a new conversation.\n"
+            "Tell me about yourself or ask about any government scheme."
         )
 
-    if message in [
-        "okay",
-        "ok",
-        "great"
-    ]:
+    if message in ["thanks","thank you","thankyou"]:
+
         return (
-            "😊 Glad I could help.\n\n"
-            "You can ask about another scheme or tell me your profile."
+            "You're welcome 😊.\n\n"
+            "Happy to help."
         )
 
-    if "what next" in message:
-        return (
-            "You can:\n\n"
-            "• Ask for more schemes\n"
-            "• Ask scheme eligibility\n"
-            "• Ask scheme benefits\n"
-            "• Type Explain <Scheme Name>"
-        )
+    if message in ["bye","goodbye"]:
+
+        user_profile["category"] = None
+        user_profile["state"] = None
+        user_profile["scheme"] = None
+
+        return "Goodbye 👋"
 
     return None
 
@@ -193,129 +310,65 @@ def handle_small_talk(message):
 @chatbot_bp.route("/chat", methods=["POST"])
 def chat():
 
-    data = request.json
+    data = request.json or {}
 
-    user_message = data.get(
-        "message",
-        ""
-    )
+    user_message = data.get("message", "").strip()
 
-    small_talk_response = handle_small_talk(
-    user_message
-    )
-
-    if small_talk_response:
+    if not user_message:
 
         return jsonify({
-            "response": small_talk_response
+            "response": "Please enter a message."
         })
 
-    # ------------------------
-    # EXPLANATION MODE
-    # ------------------------
+    # ------------------------------------
+    # Small Talk
+    # ------------------------------------
 
-    if is_explanation_request(user_message):
+    response = handle_small_talk(user_message)
 
-        scheme_name = user_message.lower()
+    if response:
 
-        words_to_remove = [
-            "explain",
-            "tell me about",
-            "what is",
-            "details of",
-            "know more about",
-            "know more"
+        return jsonify({
+            "response": response
+        })
+
+    # ------------------------------------
+    # Detect User Intent
+    # ------------------------------------
+
+    intent = detect_intent(user_message)
+
+    category = detect_category(user_message)
+
+    state = detect_state(user_message)
+
+    scheme = None
+
+    # Only try to detect a scheme if the user is asking ABOUT a scheme
+    if (
+        any(word in user_message.lower() for word in EXPLAIN_WORDS)
+        or any(word in user_message.lower() for word in BENEFIT_WORDS)
+        or any(word in user_message.lower() for word in ELIGIBILITY_WORDS)
+        or any(word in user_message.lower() for word in DOCUMENT_WORDS)
+        or any(word in user_message.lower() for word in APPLICATION_WORDS)
+    ):
+        scheme = detect_scheme(user_message)
+
+    # If no scheme is found, remember the previous one
+    if (
+        not scheme
+        and intent in [
+            "benefits",
+            "eligibility",
+            "documents",
+            "application"
         ]
+    ):
+        scheme = user_profile["scheme"]
 
-        for word in words_to_remove:
-
-            scheme_name = scheme_name.replace(
-                word,
-                ""
-            )
-
-        scheme_name = scheme_name.strip()
-
-        print("SCHEME NAME:", scheme_name)
-
-        scheme = get_scheme_by_name(
-            scheme_name
-        )
-
-        if not scheme:
-
-            return jsonify({
-                "response":
-                "Sorry, I couldn't find that scheme."
-            })
-
-        prompt = f"""
-You are JANSETU AI.
-
-Explain this government scheme in simple English.
-
-Scheme Name:
-{scheme['scheme_name']}
-
-Benefits:
-{scheme.get('benefits', '')}
-
-Eligibility:
-{scheme.get('eligibility_criteria', '')}
-
-Documents Required:
-{scheme.get('documents_required', '')}
-
-Application Process:
-{scheme.get('application_process', '')}
-
-Instructions:
-- Use plain text only
-- No markdown
-- No **
-- Use bullet points with -
-- Keep under 250 words
-"""
-
-        try:
-
-            response = generate_response(prompt)
-
-            response = (
-                response
-                .replace("**", "")
-                .replace("* ", "• ")
-            )
-
-            print("GEMINI RESPONSE:")
-            print(response)
-
-            return jsonify({
-                "response": response
-            })
-
-        except Exception as e:
-
-            print("GEMINI ERROR:")
-            print(str(e))
-
-            return jsonify({
-                "response": f"ERROR: {str(e)}"
-            })
-    # ------------------------
-    # PROFILE COLLECTION
-    # ------------------------
-    scheme = get_scheme_by_name(user_message)
-
-    if scheme:
-        # Explain scheme directly
-        category = detect_category(
-            user_message
-        )
-
-    state = detect_state(
-        user_message
-    )
+    # ------------------------------------
+    # Save Conversation Memory
+    # ------------------------------------
 
     if category:
         user_profile["category"] = category
@@ -323,40 +376,169 @@ Instructions:
     if state:
         user_profile["state"] = state
 
+    if scheme:
+        user_profile["scheme"] = scheme
+
     category = user_profile["category"]
     state = user_profile["state"]
+    scheme = user_profile["scheme"]
 
-    # Ask occupation first
+    # =====================================================
+    # SCHEME FOUND
+    # =====================================================
+
+    if scheme:
+
+        if intent == "benefits":
+
+            return jsonify({
+                "response":
+                f"🎁 Benefits of {scheme['scheme_name']}\n\n"
+                f"{scheme.get('benefits','Not available.')}"
+            })
+
+        elif intent == "eligibility":
+
+            return jsonify({
+                "response":
+                f"✅ Eligibility for {scheme['scheme_name']}\n\n"
+                f"{scheme.get('eligibility_criteria','Not available.')}"
+            })
+
+        elif intent == "documents":
+
+            return jsonify({
+                "response":
+                f"📄 Documents Required\n\n"
+                f"{scheme.get('documents_required','Not available.')}"
+            })
+
+        elif intent == "application":
+
+            return jsonify({
+                "response":
+                f"📝 Application Process\n\n"
+                f"{scheme.get('application_process','Not available.')}"
+            })
+
+        # ------------------------------------
+        # Gemini Explanation
+        # ------------------------------------
+
+        prompt = f"""
+You are JANSETU AI.
+
+Explain the following government scheme in simple English.
+
+Scheme:
+{scheme['scheme_name']}
+
+Description:
+{scheme.get('brief_description','')}
+
+Benefits:
+{scheme.get('benefits','')}
+
+Eligibility:
+{scheme.get('eligibility_criteria','')}
+
+Documents:
+{scheme.get('documents_required','')}
+
+Application Process:
+{scheme.get('application_process','')}
+
+Rules:
+- Simple English
+- Use bullets
+- Under 250 words
+- No markdown
+"""
+
+        try:
+
+            reply = generate_response(prompt)
+
+            reply = (
+                reply
+                .replace("**", "")
+                .replace("* ", "• ")
+            )
+
+            return jsonify({
+                "response": reply
+            })
+
+        except Exception as e:
+
+            print("Gemini Error:", e)
+
+            fallback = f"""
+📄 {scheme['scheme_name']}
+
+📌 Description
+{scheme.get('brief_description','Not available')}
+
+━━━━━━━━━━━━━━━━━━
+
+🎁 Benefits
+{scheme.get('benefits','Not available')}
+
+━━━━━━━━━━━━━━━━━━
+
+✅ Eligibility
+{scheme.get('eligibility_criteria','Not available')}
+
+━━━━━━━━━━━━━━━━━━
+
+📄 Documents Required
+{scheme.get('documents_required','Not available')}
+
+━━━━━━━━━━━━━━━━━━
+
+📝 Application Process
+{scheme.get('application_process','Not available')}
+
+━━━━━━━━━━━━━━━━━━
+
+🌐 Official Website
+{scheme.get('official_website','Not available')}
+"""
+
+            return jsonify({
+                "response": fallback.strip()
+            })
+
+    # =====================================================
+    # CATEGORY NOT FOUND
+    # =====================================================
 
     if not category:
 
         return jsonify({
             "response":
-            "Hello 👋\n\nWhat best describes you?\n\n• Farmer\n• Student\n• Woman\n• Worker\n• Job Seeker\n• Artist"
+            "👋 Tell me about yourself so I can recommend schemes.\n\n"
+            "Examples:\n\n"
+            "• Student\n"
+            "• Farmer\n"
+            "• Woman\n"
+            "• Need Housing\n"
+            "• Looking for Job\n"
+            "• Need Scholarship"
         })
 
-    # Ask state next
-
-    if not state:
-
-        return jsonify({
-            "response":
-            f"Great! You are identified under {category}.\n\nWhich state do you belong to?"
-        })
-
-    # ------------------------
+    # =====================================================
     # FIND SCHEMES
-    # ------------------------
+    # =====================================================
 
-    schemes = get_schemes_by_category_and_state(
-        category,
-        state
-    )
+    if state:
 
-    if not schemes:
+        schemes = get_schemes_by_category_and_state(
+            category,
+            state
+        )
 
-        print("USER MESSAGE:", user_message)
-        print("SCHEME NAME:", scheme_name)
+    else:
 
         schemes = get_schemes_by_category(
             category
@@ -366,35 +548,53 @@ Instructions:
 
         return jsonify({
             "response":
-            "Sorry, I couldn't find any matching schemes."
+            "Sorry, I couldn't find that scheme.\n"
+
+            "Please check the spelling or try asking:\n"
+            "• PM Kisan\n"
+            "• PM Awas Yojana\n"
+            "• Ayushman Bharat\n"
+            "• Sukanya Samriddhi Yojana"
         })
 
-    response = (
-        f"Based on your profile:\n\n"
-        f"Category: {category}\n"
-        f"State: {state}\n\n"
-        f"Here are some schemes:\n\n"
-    )
+    response = f"I found these {category.lower()} schemes"
 
-    for i, scheme in enumerate(
-        schemes[:5],
-        start=1
-    ):
+    if state:
+        response += f" for {state}"
+
+    response += ".\n\n"
+
+    icons = {
+        "Education":"🎓",
+        "Agriculture & Rural Development":"🌾",
+        "Housing & Shelter":"🏠",
+        "Skills & Employment":"💼",
+        "Health & Wellness":"🏥",
+        "Women & Child Development":"👩",
+        "Social Welfare & Empowerment":"🤝",
+        "Culture & Arts":"🎨"
+    }
+
+    icon = icons.get(category, "📄")
+
+    for i, s in enumerate(schemes[:5], 1):
 
         response += (
-            f"{i}. {scheme['scheme_name']}\n"
+            f"{i}. {icon} {s['scheme_name']}\n"
         )
 
-    response += (
-        "\n\nType:\n"
-        "Explain <Scheme Name>\n"
-        "to know more about any scheme."
-    )
+    response += """
 
-    # Reset conversation after recommendation
+You can now ask about any of the above schemes.
 
-    user_profile["category"] = None
-    user_profile["state"] = None
+Examples:
+
+• Explain <Scheme Name>
+• Benefits of <Scheme Name>
+• Eligibility of <Scheme Name>
+• Documents for <Scheme Name>
+• How to apply for <Scheme Name>
+"""
 
     return jsonify({
         "response": response
@@ -458,3 +658,55 @@ def eligibility_questions():
         "questions":
             questions
     })
+
+
+@chatbot_bp.route(
+    "/check-eligibility",
+    methods=["POST"]
+)
+def check_eligibility():
+
+    data = request.json or {}
+
+    scheme_id = data.get("scheme_id")
+
+    answers = data.get(
+        "answers",
+        {}
+    )
+
+    scheme = get_scheme_by_id(
+        scheme_id
+    )
+
+    if not scheme:
+
+        return jsonify({
+            "error": "Scheme not found"
+        }), 404
+
+    eligibility_text = " ".join([
+
+        scheme.get(
+            "eligibility_criteria",
+            ""
+        ),
+
+        scheme.get(
+            "target_beneficiaries",
+            ""
+        ),
+
+        scheme.get(
+            "tags",
+            ""
+        )
+
+    ])
+
+    result = evaluate_eligibility(
+        eligibility_text,
+        answers
+    )
+
+    return jsonify(result)

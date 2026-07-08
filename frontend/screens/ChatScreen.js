@@ -7,6 +7,7 @@ import {
   StyleSheet,
   FlatList,
   SafeAreaView,
+  Linking,
   StatusBar,
   Platform,
   Keyboard,
@@ -80,7 +81,7 @@ export default function ChatScreen({ navigation }) {
   const getWelcomeMessage = () => ({
     id: "welcome_" + Date.now(),
     sender: "bot",
-    text: "Welcome to JANSETU. I'm your AI-powered legal and policy assistant. How can I help you today?",
+    text: "Welcome to JANSETU. I'm your AI-powered legal and scheme assistant. How can I help you today?",
     time: getCurrentTime(),
     type: "text",
     isWelcome: true,
@@ -98,14 +99,7 @@ export default function ChatScreen({ navigation }) {
   }, []);
 
   // ADDED: Load chat when navigating from history
-  useEffect(() => {
-    if (navigation.getState()?.routes) {
-      const params = navigation.getState().routes[navigation.getState().routes.length - 1]?.params;
-      if (params?.chatId && params?.loadExisting) {
-        loadExistingChat(params.chatId);
-      }
-    }
-  }, [navigation]);
+
 
   // ADDED: Handle route params for loading existing chats
   useEffect(() => {
@@ -150,11 +144,24 @@ export default function ChatScreen({ navigation }) {
       if (savedAllChats) setAllChats(JSON.parse(savedAllChats));
       if (savedCurrentChatId) setCurrentChatId(savedCurrentChatId);
 
-      if (savedMessages) {
-        const parsedMessages = JSON.parse(savedMessages);
-        setMessages(parsedMessages.length > 0 ? parsedMessages : [getWelcomeMessage()]);
-        setWelcomeSelected(parsedMessages.length > 1);
-      } else {
+      if (!savedMessages) {
+        setMessages([getWelcomeMessage()]);
+        setWelcomeSelected(false);
+        return;
+    }
+
+    const parsedMessages = JSON.parse(savedMessages);
+
+    if (parsedMessages[currentChatId]) {
+
+        setMessages(parsedMessages[currentChatId]);
+
+        setWelcomeSelected(
+            parsedMessages[currentChatId].length > 1
+        );
+
+    } 
+      else {
         setMessages([getWelcomeMessage()]);
         setWelcomeSelected(false);
       }
@@ -171,6 +178,9 @@ export default function ChatScreen({ navigation }) {
         setMessages(existingMessages);
         setWelcomeSelected(existingMessages.length > 1);
         setCurrentChatId(chatId);
+
+        setChatMode(null);
+        setLegalSessionId(null);
       } else {
         // Load all messages and find the specific chat
         const allMessagesStr = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
@@ -187,6 +197,9 @@ export default function ChatScreen({ navigation }) {
           }
         }
         setCurrentChatId(chatId);
+
+        setChatMode(null);
+        setLegalSessionId(null);
       }
     } catch (error) {
       console.error("Error loading existing chat:", error);
@@ -233,19 +246,36 @@ export default function ChatScreen({ navigation }) {
   };
 
   const getDateSeparator = (timestamp) => {
-    const today = new Date();
+
+    if (!timestamp) return null;
+
     const messageDate = new Date(timestamp);
-    const diffTime = Math.abs(today - messageDate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (isNaN(messageDate.getTime())) {
+      return null;
+    }
+
+    const today = new Date();
+
+    const diffTime = today - messageDate;
+
+    const diffDays = Math.floor(
+      diffTime / (1000 * 60 * 60 * 24)
+    );
 
     if (diffDays === 0) return "Today";
+
     if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return messageDate.toLocaleDateString('en-IN', { 
-      day: 'numeric', 
-      month: 'short', 
-      year: 'numeric' 
+
+    if (diffDays < 7)
+      return `${diffDays} days ago`;
+
+    return messageDate.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
+
   };
 
   // MODIFIED: Updated save function to save per chat
@@ -574,6 +604,50 @@ export default function ChatScreen({ navigation }) {
       ]);
     }
 
+    const addNotification = async (title, message) => {
+
+      try {
+
+          const stored = await AsyncStorage.getItem("jansetu_notifications");
+
+          let notifications = stored
+              ? JSON.parse(stored)
+              : [];
+
+          notifications.unshift({
+
+              id: Date.now().toString(),
+
+              title,
+
+              message,
+
+              time: new Date().toISOString(),
+
+              read: false
+
+          });
+
+          notifications = notifications.slice(0,20);
+
+          await AsyncStorage.setItem(
+
+              "jansetu_notifications",
+
+              JSON.stringify(notifications)
+
+          );
+
+      }
+
+      catch(err){
+
+          console.log(err);
+
+      }
+
+  };
+
 } catch (error) {
 
   console.log(error);
@@ -628,6 +702,10 @@ finally {
   };
 
   const handleWelcomeOptionPress = (option) => {
+    const newChatId = Date.now().toString();
+    setCurrentChatId(newChatId);
+    setLegalSessionId(null);
+
     setWelcomeSelected(true);
     setChatMode(option === "legal" ? "legal" : "schemes");
     setLegalSessionId(null);
@@ -844,9 +922,51 @@ finally {
     </View>
   );
 
+  const renderBotMessage = (text) => {
+
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  const parts = text.split(urlRegex);
+
+  return (
+    <Text style={styles.botText}>
+      {parts.map((part, index) => {
+
+        if (urlRegex.test(part)) {
+
+          return (
+            <Text
+              key={index}
+              style={styles.linkText}
+              onPress={() => Linking.openURL(part)}
+            >
+              {part}
+            </Text>
+          );
+        }
+
+        return (
+          <Text key={index}>
+            {part}
+          </Text>
+        );
+      })}
+    </Text>
+  );
+};
+
+
   const renderMessage = ({ item, index }) => {
-    const showDateSeparator = index === 0 || 
-      getDateSeparator(item.timestamp) !== getDateSeparator(messages[index - 1]?.timestamp);
+    const currentDate = getDateSeparator(item.timestamp);
+
+    const previousDate =
+      index > 0
+        ? getDateSeparator(messages[index - 1]?.timestamp)
+        : null;
+
+    const showDateSeparator =
+      currentDate &&
+      (index === 0 || currentDate !== previousDate);
 
     if (item.sender === "user") {
       return (
@@ -876,7 +996,7 @@ finally {
 
     return (
       <>
-        {showDateSeparator && renderDateSeparator(getDateSeparator(item.timestamp))}
+        {showDateSeparator && renderDateSeparator(currentDate)}
         <View style={styles.botRow}>
           {/* Robot Image Avatar */}
           <Image 
@@ -884,7 +1004,7 @@ finally {
             style={styles.botAvatar} 
           />
           <View style={styles.botBubble}>
-            <Text style={styles.botText}>{item.text}</Text>
+            {renderBotMessage(item.text)}
             {item.suggestions && (
               <View style={styles.suggestions}>
                 {item.suggestions.map((suggestion, idx) => (
@@ -1046,21 +1166,84 @@ finally {
           {!welcomeSelected && messages.length <= 1 ? (
             <View style={styles.welcomeActionsContainer}>
               <Text style={styles.welcomeActionsTitle}>What can I help you with today?</Text>
-              <View style={styles.welcomeOptionsRowBottom}>
+              <View style={styles.assistantContainer}>
+
                 <TouchableOpacity
-                  style={styles.welcomeOptionButton}
+                  activeOpacity={0.9}
                   onPress={() => handleWelcomeOptionPress("legal")}
-                  activeOpacity={0.8}
+                  style={[
+                    styles.assistantCard,
+                    chatMode === "legal" && styles.selectedAssistant
+                  ]}
                 >
-                  <Text style={styles.welcomeOptionText}>Legal Awareness</Text>
+
+                  <View style={styles.assistantHeader}>
+                    <Image
+                      source={require("../assets/balance.png")}
+                      style={styles.assistantImage}
+                    />
+
+                    <View style={{ alignItems: "center" }}>
+                      <Text style={styles.assistantTitle}>
+                        Legal Assistant
+                      </Text>
+
+                      <Text style={styles.assistantSubtitle}>
+                        Know your legal rights
+                      </Text>
+                    </View>
+
+                    {chatMode === "legal" && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="#4F46E5"
+                      />
+                    )}
+
+                  </View>
+
                 </TouchableOpacity>
+
+
                 <TouchableOpacity
-                  style={[styles.welcomeOptionButton, styles.welcomeOptionButtonOutline]}
+                  activeOpacity={0.9}
                   onPress={() => handleWelcomeOptionPress("schemes")}
-                  activeOpacity={0.8}
+                  style={[
+                    styles.assistantCard,
+                    chatMode === "schemes" && styles.selectedAssistant
+                  ]}
                 >
-                  <Text style={[styles.welcomeOptionText, styles.welcomeOptionTextOutline]}>Schemes</Text>
+
+                  <View style={styles.assistantHeader}>
+
+                    <Image
+                      source={require("../assets/law.png")}
+                      style={styles.assistantImage}
+                    />
+
+                    <View style={{ alignItems: "center" }}>
+                      <Text style={styles.assistantTitle}>
+                        Scheme Assistant
+                      </Text>
+
+                      <Text style={styles.assistantSubtitle}>
+                        Find Government Schemes
+                      </Text>
+                    </View>
+
+                    {chatMode === "schemes" && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="#4F46E5"
+                      />
+                    )}
+
+                  </View>
+
                 </TouchableOpacity>
+
               </View>
             </View>
           ) : isRecording ? (
@@ -1510,9 +1693,10 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   welcomeActionsTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
     color: "#111827",
+    textAlign: "center",
     marginBottom: 10,
   },
   welcomeOptionsRowBottom: {
@@ -1520,6 +1704,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
+  linkText: {
+  color: "#2563EB",
+  textDecorationLine: "underline",
+  fontWeight: "600",
+},
   attachBtn: {
     width: 34,
     height: 34,
@@ -1647,6 +1836,54 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+assistantContainer: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 10,
+},
+
+assistantCard: {
+  width: "48%",
+  minHeight: 150,
+  backgroundColor: "#EEF2FF",
+  borderRadius: 16,
+  paddingVertical: 18,
+  paddingHorizontal: 12,
+  borderWidth: 2,
+  borderColor: "#4F46E5",
+  alignItems: "center",
+},
+
+selectedAssistant: {
+  borderWidth: 2,
+  borderColor: "#4F46E5",
+  backgroundColor: "#EEF2FF",
+},
+
+assistantHeader: {
+  alignItems: "center",
+  justifyContent: "center",
+},
+assistantImage: {
+  width: 42,
+  height: 42,
+  resizeMode: "contain",
+  marginBottom: 10,
+},
+
+assistantTitle: {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#111827",
+},
+
+assistantSubtitle: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 4,
+  textAlign: "center",
+},
   attachLabel: {
     fontSize: 12,
     fontWeight: "500",

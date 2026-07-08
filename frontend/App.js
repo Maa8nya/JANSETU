@@ -72,7 +72,7 @@ function SplashScreen({ navigation }) {
           </Text>
 
           <Text style={styles.subtitle}>
-            Legal & Policy Awareness
+            Legal & Scheme Awareness
           </Text>
 
           <Text style={styles.description}>
@@ -80,7 +80,7 @@ function SplashScreen({ navigation }) {
           </Text>
 
           <Text style={styles.description}>
-            simplified legal and policy
+            simplified legal and scheme
           </Text>
 
           <Text style={styles.description}>
