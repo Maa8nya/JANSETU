@@ -1,1 +1,1 @@
-export const API_URL = "http://:5000"; // your laptop's IP Address
+export const API_URL = "http://192.168.0.128:5000"; // your laptop's IP Address
