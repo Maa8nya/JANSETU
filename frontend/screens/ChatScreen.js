@@ -27,6 +27,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomNav from "../components/BottomNav";
 import Loader from "../components/Loader";
+import { API_URL } from "../constants/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -35,7 +36,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CHAT_HISTORY_KEY = "jansetu_chat_history";
 const ALL_CHATS_KEY = "jansetu_all_chats";
 const CURRENT_CHAT_KEY = "jansetu_current_chat";
-const LEGAL_BACKEND_HOST = "http://192.168.29.160:5000"; // Legal awareness backend IP
+const LEGAL_BACKEND_HOST = API_URL || "http://192.168.29.160:5000";
 
 export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -499,6 +500,17 @@ export default function ChatScreen({ navigation }) {
     };
   };
 
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 45000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
   // MODIFIED: Updated sendMessage to properly save chat list
   const sendMessage = async () => {
     if (!message.trim() && !attachment) return;
@@ -527,23 +539,27 @@ export default function ChatScreen({ navigation }) {
     updateChatList(userMessage);
 
    try {
+
     let response;
     let data;
     let botText = "";
-
+    console.log("Current Chat Mode:", chatMode);
     if (chatMode === "legal") {
       const legalUrl = `${LEGAL_BACKEND_HOST}/api/legal${legalSessionId ? "/answer" : "/start-chat"}`;
       const legalPayload = legalSessionId
         ? { session_id: legalSessionId, answer: userMessage.text }
         : { query: userMessage.text };
 
-      response = await fetch(legalUrl, {
+      response = await fetchWithTimeout(legalUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(legalPayload),
       });
+      console.log("URL:", legalUrl);
+      console.log("HTTP Status:", response.status);
+      console.log("OK:", response.ok);
 
       if (!response.ok) {
         throw new Error("Legal backend request failed");
@@ -563,7 +579,7 @@ export default function ChatScreen({ navigation }) {
         botText = data.response || data.message || "Unable to get a response from Legal Awareness.";
       }
     } else {
-      response = await fetch(
+      response = await fetchWithTimeout(
         `${LEGAL_BACKEND_HOST}/chat`,
         {
           method: "POST",
@@ -656,7 +672,9 @@ export default function ChatScreen({ navigation }) {
   const botReply = {
     id: (Date.now() + 1).toString(),
     sender: "bot",
-    text: "Unable to connect to JANSETU server.",
+    text: error?.name === "AbortError"
+      ? "The server is taking too long to respond. Please try again."
+      : "Unable to connect to JANSETU server.",
     time: getCurrentTime(),
     timestamp: new Date().toISOString(),
     type: "text",

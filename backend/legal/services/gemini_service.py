@@ -11,7 +11,7 @@ genai.configure(
 )
 
 model = genai.GenerativeModel(
-    "gemini-2.5-flash"
+    "gemini-2.5-flash-lite"
 )
 
 
@@ -114,6 +114,7 @@ RELEVANT LAWS
 Instructions
 
 Write a concise and helpful response.
+Let it be like you are talking to the person
 
 Use the following structure:
 
@@ -151,6 +152,8 @@ Important Rules
         print("Retrieved Laws :", len(laws))
         print("Prompt Length :", len(prompt))
         print("============================\n")
+        for m in genai.list_models():
+            print(m.name)
 
         response = model.generate_content(
             prompt

@@ -157,7 +157,7 @@ useEffect(() => {
   const fetchSchemes = async () => {
     try {
       console.log("FETCH STARTED");
-      const response = await fetch("http://10.76.98.29:5000/schemes");
+      const response = await fetch("http://192.168.29.160:5000/schemes");
       console.log("STATUS:", response.status);
       const text = await response.text();
       console.log("RAW RESPONSE:", text.substring(0, 200));
