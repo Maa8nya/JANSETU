@@ -19,7 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import BottomNav from "../components/BottomNav";
 import Loader from "../components/Loader";
 
-const API_URL = "http://192.168.0.128:5000"; // Replace this with your laptop IP address
+const API_URL = "http://192.168.29.160:5000"; // Replace this with your laptop IP address
 const { width } = Dimensions.get("window");
 
 // JANSETU Color Theme
@@ -157,7 +157,7 @@ useEffect(() => {
   const fetchSchemes = async () => {
     try {
       console.log("FETCH STARTED");
-      const response = await fetch("http://192.168.0.128:5000/schemes");
+      const response = await fetch("http://10.76.98.29:5000/schemes");
       console.log("STATUS:", response.status);
       const text = await response.text();
       console.log("RAW RESPONSE:", text.substring(0, 200));

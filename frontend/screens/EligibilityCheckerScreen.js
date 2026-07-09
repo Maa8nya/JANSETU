@@ -55,7 +55,7 @@ export default function EligibilityCheckerScreen({ route, navigation }) {
   const fetchQuestions = async () => {
     try {
       const response = await fetch(
-        "http://192.168.0.128:5000/eligibility-questions",
+        "http://10.76.98.29:5000/eligibility-questions",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -79,7 +79,7 @@ const checkEligibility = async () => {
 
     const response =
       await fetch(
-        "http://192.168.0.128:5000/check-eligibility",
+        "http://192.168.29.160:5000/check-eligibility",
         {
           method: "POST",
 

@@ -35,7 +35,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const CHAT_HISTORY_KEY = "jansetu_chat_history";
 const ALL_CHATS_KEY = "jansetu_all_chats";
 const CURRENT_CHAT_KEY = "jansetu_current_chat";
-const LEGAL_BACKEND_HOST = "http://192.168.0.128:5000"; // Legal awareness backend IP
+const LEGAL_BACKEND_HOST = "http://192.168.29.160:5000"; // Legal awareness backend IP
 
 export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -69,12 +69,13 @@ export default function ChatScreen({ navigation }) {
 
   // Suggested Questions
   const suggestedQuestions = [
-    { icon: "scale-outline", text: "What are my legal rights?" },
-    { icon: "document-text-outline", text: "How to file an RTI?" },
-    { icon: "newspaper-outline", text: "Latest government policies" },
-    { icon: "shield-checkmark-outline", text: "Consumer protection laws" },
-    { icon: "home-outline", text: "Property registration process" },
-    { icon: "briefcase-outline", text: "Employment regulations" },
+    { icon: "call-outline", text: "Someone is threatening me." },
+    { icon: "briefcase-outline", text: "My employer is not paying my salary" },
+    { icon: "home-outline", text: "My landlord is forcing me to vacate" },
+    { icon: "school-outline", text: "Find student scholarship schemes" },
+    { icon: "briefcase-outline", text: "Schemes for unemployed youth" },
+    { icon: "leaf-outline", text: "I am a farmer. Show available schemes." },
+
   ];
 
   // Default welcome message
@@ -1061,7 +1062,7 @@ finally {
               onPress={() => handleSuggestionPress(question.text)}
               activeOpacity={0.7}
             >
-              <Ionicons name={question.icon} size={18} color="#6B7280" />
+              <Ionicons name={question.icon} size={18} color="#4F46E5" />
               <Text style={styles.suggestedText} numberOfLines={2}>{question.text}</Text>
             </TouchableOpacity>
           ))}
@@ -1350,7 +1351,7 @@ const styles = StyleSheet.create({
   
   // Header
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#dbe2f9",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     zIndex: 100,
@@ -1366,7 +1367,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#dbe2f9",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1491,7 +1492,7 @@ const styles = StyleSheet.create({
     padding: 12,
     width: (SCREEN_WIDTH - 48) / 2,
     borderWidth: 1,
-    borderColor: "#F3F4F6",
+    borderColor: "#b4b1f4",
     gap: 8,
   },
   suggestedText: {
