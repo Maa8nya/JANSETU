@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Image,
   FlatList,
   StatusBar,
-  Platform,
   Animated,
   TextInput,
   useWindowDimensions,
@@ -17,54 +16,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BottomNav from "../components/BottomNav";
 import Loader from "../components/Loader";
+import { API_URL } from "../constants/api";
 
-const rightsData = [
-  {
-    id: "1",
-    title: "Women Rights",
-    subtitle: "Rights & legal protection for women",
-    icon: "female",
-    color: "#F3E8FF",
-    iconColor: "#9333EA",
-  },
-  {
-    id: "2",
-    title: "Labor Rights",
-    subtitle: "Rights for employees and workers",
-    icon: "briefcase",
-    color: "#FEE2E2",
-    iconColor: "#DC2626",
-  },
-  {
-    id: "3",
-    title: "Consumer Rights",
-    subtitle: "Protect yourself as a consumer",
-    icon: "card",
-    color: "#DBEAFE",
-    iconColor: "#2563EB",
-  },
-  {
-    id: "4",
-    title: "Cyber Crime",
-    subtitle: "Stay safe in digital world",
-    icon: "shield-checkmark",
-    color: "#E0F2FE",
-    iconColor: "#0284C7",
-  },
-  {
-    id: "5",
-    title: "Tenant Rights",
-    subtitle: "Rights of tenants & renters",
-    icon: "home",
-    color: "#FEF3C7",
-    iconColor: "#D97706",
-  },
+const categoryColors = [
+  { color: "#F3E8FF", iconColor: "#9333EA", icon: "female" },
+  { color: "#FEE2E2", iconColor: "#DC2626", icon: "briefcase" },
+  { color: "#DBEAFE", iconColor: "#2563EB", icon: "card" },
+  { color: "#E0F2FE", iconColor: "#0284C7", icon: "shield-checkmark" },
+  { color: "#FEF3C7", iconColor: "#D97706", icon: "home" },
 ];
 
 export default function RightsScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [laws, setLaws] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const searchAnimation = useRef(new Animated.Value(0)).current;
   const inputRef = useRef(null);
   const { width } = useWindowDimensions();
@@ -74,6 +42,60 @@ export default function RightsScreen({ navigation }) {
   const imageWidth = Math.min(width * 0.42, 160);
   const imageHeight = Math.min(width * 0.48, 180);
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_URL}/rights/categories`);
+        const data = await response.json();
+        // filter out empty or dummy category entries
+        const filtered = (data || []).filter(
+          (item) => item && item.name && String(item.name).trim().length > 0
+        );
+        setCategories(filtered);
+        if (filtered.length > 0) {
+          setSelectedCategory(filtered[0].value);
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const loadLaws = async () => {
+      if (!selectedCategory) return;
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_URL}/rights/laws?category=${encodeURIComponent(selectedCategory)}`);
+        const data = await response.json();
+        // remove dummy/empty laws (missing name or all-empty fields)
+        const cleaned = (data || []).filter((l) => {
+          const hasName = l && (l.name || l.law_id || l.law_name);
+          // also ensure not entirely empty
+          const hasContent = (l.summary && String(l.summary).trim().length > 0) ||
+            (l.applicable_situations && l.applicable_situations.length > 0) ||
+            (l.important_provisions && l.important_provisions.length > 0) ||
+            (l.rights && l.rights.length > 0) ||
+            (l.actions && l.actions.length > 0);
+          return hasName && hasContent;
+        });
+        setLaws(cleaned);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLaws();
+  }, [selectedCategory]);
+
   const openSearch = () => {
     setIsSearchOpen(true);
     Animated.timing(searchAnimation, {
@@ -81,15 +103,11 @@ export default function RightsScreen({ navigation }) {
       duration: 300,
       useNativeDriver: false,
     }).start(() => {
-      // Focus the input after animation completes
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      setTimeout(() => inputRef.current?.focus(), 100);
     });
   };
 
   const closeSearch = () => {
-    // Dismiss keyboard first
     inputRef.current?.blur();
     setSearchQuery("");
     Animated.timing(searchAnimation, {
@@ -101,50 +119,60 @@ export default function RightsScreen({ navigation }) {
     });
   };
 
-  const handleSearch = () => {
-  setIsLoading(true);
+  const filteredCategories = categories.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  setTimeout(() => {
-    setIsLoading(false);
-  }, 1200);
-};
+  const filteredLaws = laws.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.summary || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const searchBarWidth = searchAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
+  const searchBarWidth = searchAnimation.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
+  const searchBarOpacity = searchAnimation.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
 
-  const searchBarOpacity = searchAnimation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
+  const renderCategoryItem = ({ item, index }) => {
+    const style = categoryColors[index % categoryColors.length];
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.card}
+        onPress={() => setSelectedCategory(item.value)}
+      >
+        <View style={styles.leftSection}>
+          <View style={[styles.iconBox, { backgroundColor: style.color }] }>
+            <Ionicons name={style.icon} size={22} color={style.iconColor} />
+          </View>
+          <View style={styles.textSection}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardSubtitle}>Tap to view related laws</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+      </TouchableOpacity>
+    );
+  };
 
-  const headerTitleOpacity = searchAnimation.interpolate({
-    inputRange: [0, 0.5],
-    outputRange: [1, 1],
-  });
-
-  const renderItem = ({ item }) => (
+  const renderLawItem = ({ item }) => (
     <TouchableOpacity
       activeOpacity={0.85}
       style={styles.card}
-      onPress={() =>
-        navigation.navigate("RightsDetail", {
-          title: item.title,
-          subtitle: item.subtitle,
-          icon: item.icon,
-          color: item.color,
-          iconColor: item.iconColor,
-        })
-      }
+      onPress={() => navigation.navigate("RightsDetail", {
+        title: item.name,
+        subtitle: selectedCategory,
+        icon: "document-text",
+        color: "#EEF2FF",
+        iconColor: "#4F46E5",
+        lawId: item.law_id,
+      })}
     >
       <View style={styles.leftSection}>
-        <View style={[styles.iconBox, { backgroundColor: item.color }]}>
-          <Ionicons name={item.icon} size={22} color={item.iconColor} />
+        <View style={[styles.iconBox, { backgroundColor: "#EEF2FF" }] }>
+          <Ionicons name="document-text" size={22} color="#4F46E5" />
         </View>
         <View style={styles.textSection}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <Text style={styles.cardSubtitle}>{item.summary}</Text>
         </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color="#6B7280" />
@@ -155,132 +183,75 @@ export default function RightsScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#111827" />
           </TouchableOpacity>
 
-          {/* Search Bar Container */}
           <View style={styles.headerCenter}>
-            {/* Original Title */}
             {!isSearchOpen && (
-              <Animated.Text
-                style={[
-                  styles.headerTitle,
-                  {
-                    opacity: searchAnimation.interpolate({
-                      inputRange: [0, 0.3, 1],
-                      outputRange: [1, 0, 0],
-                    }),
-                  },
-                ]}
-              >
-                Know Your Rights
-              </Animated.Text>
+              <Animated.Text style={[styles.headerTitle, { opacity: searchAnimation.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 0, 0] }) }]}>Know Your Rights</Animated.Text>
             )}
 
-            {/* Animated Search Bar */}
             {isSearchOpen && (
-              <Animated.View
-                style={[
-                  styles.searchContainer,
-                  {
-                    width: searchBarWidth,
-                    opacity: searchBarOpacity,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="search"
-                  size={18}
-                  color="#9CA3AF"
-                  style={styles.searchIcon}
-                />
+              <Animated.View style={[styles.searchContainer, { width: searchBarWidth, opacity: searchBarOpacity }] }>
+                <Ionicons name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
                 <TextInput
-  ref={inputRef}
-  style={styles.searchInput}
-  placeholder="Search rights..."
-  placeholderTextColor="#9CA3AF"
-  value={searchQuery}
-  onChangeText={setSearchQuery}
-  autoFocus={false}
-  returnKeyType="search"
-  onSubmitEditing={handleSearch}
-/>
+                  ref={inputRef}
+                  style={styles.searchInput}
+                  placeholder="Search rights..."
+                  placeholderTextColor="#9CA3AF"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus={false}
+                  returnKeyType="search"
+                />
                 {searchQuery.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setSearchQuery("")}
-                    style={styles.clearButton}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={18}
-                      color="#9CA3AF"
-                    />
+                  <TouchableOpacity onPress={() => setSearchQuery("")} style={styles.clearButton}>
+                    <Ionicons name="close-circle" size={18} color="#9CA3AF" />
                   </TouchableOpacity>
                 )}
               </Animated.View>
             )}
           </View>
 
-          {/* Search Toggle Button */}
-          <TouchableOpacity
-            onPress={isSearchOpen ? closeSearch : openSearch}
-          >
-            <Ionicons
-              name={isSearchOpen ? "close" : "search"}
-              size={22}
-              color="#111827"
-            />
+          <TouchableOpacity onPress={isSearchOpen ? closeSearch : openSearch}>
+            <Ionicons name={isSearchOpen ? "close" : "search"} size={22} color="#111827" />
           </TouchableOpacity>
         </View>
 
-        {/* TOP CARD */}
-        <View
-          style={[
-            styles.banner,
-            {
-              height: bannerHeight,
-            },
-          ]}
-        >
+        <View style={[styles.banner, { height: bannerHeight }] }>
           <View style={styles.bannerLeft}>
-            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>
-              Be aware.
-            </Text>
-            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>
-              Be empowered.
-            </Text>
-            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>
-              Know your rights.
-            </Text>
+            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>Be aware.</Text>
+            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>Be empowered.</Text>
+            <Text style={[styles.bannerText, { fontSize: bannerTextSize }]}>Know your rights.</Text>
           </View>
-          <Image
-            source={require("../assets/rights.png")}
-            style={[
-              styles.bannerImage,
-              {
-                width: imageWidth,
-                height: imageHeight,
-              },
-            ]}
-            resizeMode="contain"
-          />
+          <Image source={require("../assets/rights.png")} style={[styles.bannerImage, { width: imageWidth, height: imageHeight }] } resizeMode="contain" />
         </View>
 
-        {/* RIGHTS LIST */}
+        <Text style={styles.sectionLabel}>Legal categories</Text>
         <FlatList
-          data={rightsData}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
+          data={filteredCategories}
+          keyExtractor={(item) => item.value}
+          renderItem={renderCategoryItem}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 110 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
 
-        {/* BOTTOM NAV */}
-        <BottomNav active="Rights" navigation={navigation} />
+        {selectedCategory && (
+          <>
+            <Text style={styles.sectionLabel}>Laws in {selectedCategory}</Text>
+            <FlatList
+              data={filteredLaws}
+              keyExtractor={(item) => item.law_id || item.id}
+              renderItem={renderLawItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 110 }}
+            />
+          </>
+        )}
 
+        <BottomNav active="Rights" navigation={navigation} />
         {isLoading && <Loader />}
       </SafeAreaView>
     </View>
@@ -325,7 +296,6 @@ const styles = StyleSheet.create({
     height: 40,
   },
   searchIcon: {
-    size: 27,
     marginRight: 18,
   },
   searchInput: {
@@ -346,7 +316,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 26,
+    marginBottom: 16,
   },
   bannerLeft: {
     flex: 1,
@@ -358,6 +328,13 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     marginRight: 9,
+  },
+  sectionLabel: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
   },
   card: {
     backgroundColor: "#FFFFFF",

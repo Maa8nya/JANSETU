@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -110,6 +111,11 @@ export default function RightsDetailScreen({ navigation, route }) {
   const { title, subtitle, icon, color, iconColor } = route.params;
   const content = rightsContent[title] || rightsContent["Women Rights"];
 
+  const handleLearnMore = () => {
+    const url = "https://www.indiacode.nic.in/";
+    Linking.openURL(url).catch((err) => console.log("Failed to open URL", err));
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -157,36 +163,40 @@ export default function RightsDetailScreen({ navigation, route }) {
           </View>
 
           {/* KEY RIGHTS & PROTECTIONS */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>
-              Key Rights & Protections
-            </Text>
-            {content.keyPoints.map((item, index) => (
-              <View key={index} style={styles.eligibilityRow}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={20}
-                  color="#16A34A"
-                />
-                <Text style={styles.eligibilityText}>{item}</Text>
+            {content.keyPoints.length > 0 && (
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>
+                  Key Rights & Protections
+                </Text>
+                {content.keyPoints.map((item, index) => (
+                  <View key={index} style={styles.eligibilityRow}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color="#16A34A"
+                    />
+                    <Text style={styles.eligibilityText}>{item}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            )}
 
           {/* RELEVANT LAWS */}
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Relevant Laws</Text>
-            {content.laws.map((item, index) => (
-              <View key={index} style={styles.eligibilityRow}>
-                <Ionicons
-                  name="document-text"
-                  size={20}
-                  color={iconColor}
-                />
-                <Text style={styles.eligibilityText}>{item}</Text>
+            {content.laws.length > 0 && (
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>Relevant Laws</Text>
+                {content.laws.map((item, index) => (
+                  <View key={index} style={styles.eligibilityRow}>
+                    <Ionicons
+                      name="document-text"
+                      size={20}
+                      color={iconColor}
+                    />
+                    <Text style={styles.eligibilityText}>{item}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
+            )}
 
           {/* HELPLINE CARD */}
           <View style={[styles.helplineCard, { backgroundColor: color }]}>
@@ -200,7 +210,11 @@ export default function RightsDetailScreen({ navigation, route }) {
           </View>
 
           {/* BUTTON */}
-          <TouchableOpacity activeOpacity={0.9} style={styles.button}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.button}
+            onPress={handleLearnMore}
+          >
             <Text style={styles.buttonText}>Learn More</Text>
           </TouchableOpacity>
         </ScrollView>
